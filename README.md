@@ -1,5 +1,9 @@
 # OpenSandbox
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/alibaba/OpenSandbox)
+
+-------
+
 English | [中文](docs/README_zh.md)
 
 OpenSandbox is a **universal sandbox platform** for AI application scenarios, providing **multi-language SDKs, unified sandbox protocols, and sandbox runtimes** for LLM-related capabilities (command execution, file operations, code execution, browser operations, Agent execution, etc.).
