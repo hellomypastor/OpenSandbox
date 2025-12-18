@@ -32,7 +32,7 @@ docker buildx ls
 #  .
 
 docker buildx build \
-  -t opensandbox/code-interpreter-base:${TAG} \
+  -t opensandbox/code-interpreter:${TAG} \
   -t sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/code-interpreter:${TAG} \
   --platform linux/amd64,linux/arm64 \
   --push \
