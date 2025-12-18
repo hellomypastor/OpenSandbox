@@ -1,4 +1,4 @@
-# Alibaba Code Interpreter SDK for Python
+# OpenSandbox Code Interpreter SDK for Python
 
 English | [中文](README_zh.md)
 

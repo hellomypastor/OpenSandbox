@@ -27,7 +27,7 @@ uv run python -m src.main
 
 ```shell
 # Install OpenSandbox package
-uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple opensandbox
+uv pip install opensandbox
 
 # Run the example (requires SANDBOX_DOMAIN / SANDBOX_API_KEY / IFLOW_API_KEY; IFLOW_BASE_URL has a default)
 uv run python examples/iflow-cli/main.py

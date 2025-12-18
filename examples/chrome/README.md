@@ -41,7 +41,7 @@ alive (e.g., `["/bin/sh", "-c", "sleep infinity"]`), or reuse `tail -f /dev/null
 `5901` and `9222` for VNC/DevTools.
 
 ```shell
-uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple opensandbox
+uv pip install opensandbox
 uv run python examples/chrome/main.py
 ```
 

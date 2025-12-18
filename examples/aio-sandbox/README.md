@@ -47,7 +47,7 @@ This example uses a fixed configuration for quick start:
 
 Install dependencies with uv under project root:
 ```shell
-uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple opensandbox agent-sandbox==0.0.18
+uv pip install opensandbox agent-sandbox==0.0.18
 ```
 
 Run the example (it will create a sandbox via OpenSandbox, wait until it's Running, then connect to it via agent-sandbox):

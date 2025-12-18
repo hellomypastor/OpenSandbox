@@ -1,4 +1,4 @@
-# Alibaba Sandbox SDK for Python
+# OpenSandbox SDK for Python
 
 中文 | [English](README.md)
 

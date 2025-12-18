@@ -24,7 +24,7 @@ uv run python -m src.main
 
 ```shell
 # Install OpenSandbox package
-uv pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple opensandbox
+uv pip install opensandbox
 
 # Run the example
 uv run python examples/echo/main.py
