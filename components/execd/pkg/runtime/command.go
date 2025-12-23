@@ -37,7 +37,6 @@ import (
 // runCommand executes shell commands and streams their output.
 func (c *Controller) runCommand(ctx context.Context, request *ExecuteCodeRequest) error {
 	session := c.newContextID()
-	request.Hooks.OnExecuteInit(session)
 
 	signals := make(chan os.Signal, 1)
 	defer close(signals)
@@ -71,6 +70,7 @@ func (c *Controller) runCommand(ctx context.Context, request *ExecuteCodeRequest
 
 	err = cmd.Start()
 	if err != nil {
+		request.Hooks.OnExecuteInit(session)
 		request.Hooks.OnExecuteError(&execute.ErrorOutput{EName: "CommandExecError", EValue: err.Error()})
 		logs.Error("CommandExecError: error starting commands: %v", err)
 		return nil
@@ -80,6 +80,7 @@ func (c *Controller) runCommand(ctx context.Context, request *ExecuteCodeRequest
 		pid: cmd.Process.Pid,
 	}
 	c.storeCommandKernel(session, kernel)
+	request.Hooks.OnExecuteInit(session)
 
 	go func() {
 		for {
