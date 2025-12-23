@@ -16,7 +16,20 @@
 
 @file:Suppress("UnstableApiUsage")
 
+import org.gradle.api.GradleException
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+
+fun Project.resolveVersionFromTag(expectedTagPrefix: String): String? {
+    val refName = System.getenv("GITHUB_REF_NAME") ?: System.getenv("GITHUB_REF")?.removePrefix("refs/tags/")
+    val fromEnv =
+        refName
+            ?.trim()
+            ?.takeIf { it.startsWith(expectedTagPrefix) }
+            ?.removePrefix(expectedTagPrefix)
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+    return fromEnv
+}
 
 buildscript {
     repositories {
@@ -37,9 +50,24 @@ plugins {
     alias(libs.plugins.mavenPublish) apply false
 }
 
+val manualProjectVersion = project.findProperty("project.version") as String
+val tagVersion =
+    project.resolveVersionFromTag(
+        expectedTagPrefix = "java/code-interpreter/v",
+    )
+
+if (tagVersion != null && tagVersion != manualProjectVersion) {
+    throw GradleException(
+        "Ref/tag version mismatch: expected version '$manualProjectVersion' from gradle.properties, " +
+            "but got '$tagVersion' from tag 'java/code-interpreter/v...'. Please align the tag and project.version.",
+    )
+}
+
+extra["project.version"] = manualProjectVersion
+
 allprojects {
     group = project.findProperty("project.group") as String
-    version = project.findProperty("project.version") as String
+    version = manualProjectVersion
 
     repositories {
         mavenCentral()

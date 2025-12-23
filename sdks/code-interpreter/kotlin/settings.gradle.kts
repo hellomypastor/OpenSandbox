@@ -22,20 +22,3 @@ plugins {
 
 include(":code-interpreter")
 include(":code-interpreter-bom")
-
-// Development-time dependency substitution:
-// Allow developing this SDK against local sandbox sources without changing published dependencies.
-//
-// Usage:
-// - Enable: ./gradlew -PuseLocalSandbox=true ...
-// - Disable (default): do nothing, uses Maven coordinates declared in dependencies.
-val useLocalSandbox = providers.gradleProperty("useLocalSandbox").orNull?.toBoolean() == true
-if (useLocalSandbox) {
-    includeBuild("../../sandbox/kotlin") {
-        dependencySubstitution {
-            substitute(module("com.alibaba.opensandbox:sandbox")).using(project(":sandbox"))
-            substitute(module("com.alibaba.opensandbox:sandbox-api")).using(project(":sandbox-api"))
-            substitute(module("com.alibaba.opensandbox:sandbox-bom")).using(project(":sandbox-bom"))
-        }
-    }
-}

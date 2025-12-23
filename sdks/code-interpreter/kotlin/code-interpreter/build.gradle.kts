@@ -20,8 +20,7 @@ repositories {
     }
     mavenCentral()
 
-    val sandboxVersion =
-        (project.findProperty("sandbox.version") as String?) ?: project.version.toString()
+    val sandboxVersion = libs.versions.sandbox.get()
     if (sandboxVersion.contains("SNAPSHOT", ignoreCase = true)) {
         maven {
             url = uri("https://central.sonatype.com/repository/maven-snapshots/")
@@ -33,9 +32,8 @@ repositories {
 }
 
 dependencies {
-    val sandboxVersion = (project.findProperty("sandbox.version") as String)
-    api("com.alibaba.opensandbox:sandbox:$sandboxVersion")
-    implementation("com.alibaba.opensandbox:sandbox-api:$sandboxVersion")
+    api(libs.sandbox)
+    implementation(libs.sandbox.api)
 
     api(libs.kotlin.stdlib)
     api(libs.slf4j.api)

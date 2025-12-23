@@ -44,7 +44,6 @@ interface Codes {
      */
     fun run(request: RunCodeRequest): Execution
 
-
     /**
      * Executes code within the specified context.
      *
@@ -53,10 +52,13 @@ interface Codes {
      * @param handlers execution events handlers
      * @return Execution with stdout, stderr, exit code, and execution metadata
      */
-    fun run(code: String, context: CodeContext, handlers: ExecutionHandlers): Execution {
+    fun run(
+        code: String,
+        context: CodeContext,
+        handlers: ExecutionHandlers,
+    ): Execution {
         return run(RunCodeRequest.builder().code(code).context(context).handlers(handlers).build())
     }
-
 
     /**
      * Interrupts a currently running code execution.

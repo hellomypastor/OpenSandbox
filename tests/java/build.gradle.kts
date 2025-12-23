@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "com.alibaba.opensandbox"
-version = "1.0.0-SNAPSHOT"
+version = "1.0.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -29,13 +29,26 @@ java {
 
 repositories {
     mavenLocal()
+    exclusiveContent {
+        forRepository {
+            mavenLocal()
+        }
+        filter {
+            includeGroup("com.alibaba.opensandbox")
+        }
+    }
     mavenCentral()
+}
+
+configurations.configureEach {
+    resolutionStrategy.cacheDynamicVersionsFor(0, "seconds")
+    resolutionStrategy.cacheChangingModulesFor(0, "seconds")
 }
 
 dependencies {
     // OpenSandbox Kotlin SDKs
-    testImplementation("com.alibaba.opensandbox:sandbox:1.0.0-SNAPSHOT")
-    testImplementation("com.alibaba.opensandbox:code-interpreter:1.0.0-SNAPSHOT")
+    testImplementation("com.alibaba.opensandbox:sandbox:latest.integration")
+    testImplementation("com.alibaba.opensandbox:code-interpreter:latest.integration")
 
     // Test frameworks
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
