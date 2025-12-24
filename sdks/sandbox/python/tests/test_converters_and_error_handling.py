@@ -138,6 +138,7 @@ def test_sandbox_model_converter_to_api_create_request_and_renew_tz() -> None:
         metadata={},
         timeout=timedelta(seconds=3),
         resource={"cpu": "100m"},
+        extensions={},
     )
     d = req.to_dict()
     assert d["image"]["uri"] == "python:3.11"

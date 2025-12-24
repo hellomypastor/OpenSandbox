@@ -49,17 +49,20 @@ class Sandboxes(Protocol):
         metadata: dict[str, str],
         timeout: timedelta,
         resource: dict[str, str],
+        extensions: dict[str, str],
     ) -> SandboxCreateResponse:
         """
         Create a new sandbox with the specified configuration.
 
         Args:
-            spec: Image specification for the sandbox
-            entrypoint: Command to run as entrypoint
-            env: Environment variables
-            metadata: Custom metadata
-            timeout: Sandbox timeout
-            resource: Resource limits
+            spec: Container image specification for provisioning the sandbox.
+            entrypoint: Command to run as the sandbox's main process.
+            env: Environment variables injected into the sandbox runtime.
+            metadata: User-defined metadata used for management and filtering.
+            timeout: Sandbox lifetime. The server may terminate the sandbox when it expires.
+            resource: Runtime resource limits (e.g. cpu/memory). Exact semantics are server-defined.
+            extensions: Opaque extension parameters passed through to the server as-is.
+                Prefer namespaced keys (e.g. ``storage.id``).
 
         Returns:
             Sandbox create response

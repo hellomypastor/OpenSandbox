@@ -91,6 +91,7 @@ class SandboxesAdapterSync(SandboxesSync):
         metadata: dict[str, str],
         timeout: timedelta,
         resource: dict[str, str],
+        extensions: dict[str, str],
     ) -> SandboxCreateResponse:
         logger.info("Creating sandbox with image: %s", spec.image)
         try:
@@ -100,7 +101,13 @@ class SandboxesAdapterSync(SandboxesSync):
             )
 
             create_request = SandboxModelConverter.to_api_create_sandbox_request(
-                spec, entrypoint, env, metadata, timeout, resource
+                spec=spec,
+                entrypoint=entrypoint,
+                env=env,
+                metadata=metadata,
+                timeout=timeout,
+                resource=resource,
+                extensions=extensions,
             )
             response_obj = post_sandboxes.sync_detailed(client=self._get_client(), body=create_request)
             handle_api_error(response_obj, "Create sandbox")

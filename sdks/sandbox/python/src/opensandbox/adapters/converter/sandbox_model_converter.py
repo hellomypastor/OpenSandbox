@@ -90,6 +90,7 @@ class SandboxModelConverter:
         metadata: dict[str, str],
         timeout: timedelta,
         resource: dict[str, str],
+        extensions: dict[str, str],
     ) -> CreateSandboxRequest:
         """Convert domain parameters to API CreateSandboxRequest."""
         from opensandbox.api.lifecycle.models.create_sandbox_request import (
@@ -97,6 +98,9 @@ class SandboxModelConverter:
         )
         from opensandbox.api.lifecycle.models.create_sandbox_request_env import (
             CreateSandboxRequestEnv,
+        )
+        from opensandbox.api.lifecycle.models.create_sandbox_request_extensions import (
+            CreateSandboxRequestExtensions,
         )
         from opensandbox.api.lifecycle.models.create_sandbox_request_metadata import (
             CreateSandboxRequestMetadata,
@@ -117,6 +121,10 @@ class SandboxModelConverter:
         # Convert resource limits dict to API model
         api_resource_limits = ResourceLimits.from_dict(resource)
 
+        api_extensions = (
+            CreateSandboxRequestExtensions.from_dict(extensions) if extensions else UNSET
+        )
+
         return CreateSandboxRequest(
             image=SandboxModelConverter.to_api_image_spec(spec),
             entrypoint=entrypoint,
@@ -124,6 +132,7 @@ class SandboxModelConverter:
             metadata=api_metadata,
             timeout=int(timeout.total_seconds()),
             resource_limits=api_resource_limits,
+            extensions=api_extensions,
         )
 
     @staticmethod

@@ -99,9 +99,11 @@ async def test_create_sandbox_success(monkeypatch: pytest.MonkeyPatch) -> None:
         metadata={},
         timeout=timedelta(seconds=3),
         resource={"cpu": "100m"},
+        extensions={"storage.id": "abc123", "debug": "true"},
     )
     assert isinstance(out.id, UUID)
     assert "image" in called["body"].to_dict()
+    assert called["body"].to_dict()["extensions"] == {"storage.id": "abc123", "debug": "true"}
 
 
 @pytest.mark.asyncio
@@ -123,6 +125,7 @@ async def test_create_sandbox_empty_response_raises(monkeypatch: pytest.MonkeyPa
             metadata={},
             timeout=timedelta(seconds=1),
             resource={"cpu": "100m"},
+            extensions={"debug": "true"},
         )
 
 

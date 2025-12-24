@@ -366,6 +366,7 @@ class Sandbox:
         env: dict[str, str] | None = None,
         metadata: dict[str, str] | None = None,
         resource: dict[str, str] | None = None,
+        extensions: dict[str, str] | None = None,
         entrypoint: list[str] | None = None,
         connection_config: ConnectionConfig | None = None,
         health_check: Callable[["Sandbox"], Awaitable[bool]] | None = None,
@@ -381,6 +382,8 @@ class Sandbox:
             env: Environment variables for the sandbox
             metadata: Custom metadata for the sandbox
             resource: Resource limits (CPU, memory, etc.)
+            extensions: Opaque extension parameters passed through to the server as-is.
+                Prefer namespaced keys (e.g. ``storage.id``).
             entrypoint: Command to run as entrypoint
             connection_config: Connection configuration
             health_check: Custom async health check function
@@ -397,6 +400,7 @@ class Sandbox:
         env = env or {}
         metadata = metadata or {}
         resource = resource or {"cpu": "1", "memory": "2Gi"}
+        extensions = extensions or {}
 
         if isinstance(image, str):
             image = SandboxImageSpec(image=image)
@@ -418,6 +422,7 @@ class Sandbox:
                 metadata,
                 timeout,
                 resource,
+                extensions,
             )
             sandbox_id = response.id
 

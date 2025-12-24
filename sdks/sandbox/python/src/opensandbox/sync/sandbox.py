@@ -351,6 +351,7 @@ class SandboxSync:
         env: dict[str, str] | None = None,
         metadata: dict[str, str] | None = None,
         resource: dict[str, str] | None = None,
+        extensions: dict[str, str] | None = None,
         entrypoint: list[str] | None = None,
         connection_config: ConnectionConfigSync | None = None,
         health_check: Callable[["SandboxSync"], bool] | None = None,
@@ -366,6 +367,8 @@ class SandboxSync:
             env: Environment variables for the sandbox
             metadata: Custom metadata for the sandbox
             resource: Resource limits (CPU, memory, etc.)
+            extensions: Opaque extension parameters passed through to the server as-is.
+                Prefer namespaced keys (e.g. ``storage.id``).
             entrypoint: Command to run as entrypoint
             connection_config: Connection configuration
             health_check: Custom sync health check function
@@ -382,6 +385,7 @@ class SandboxSync:
         env = env or {}
         metadata = metadata or {}
         resource = resource or {"cpu": "1", "memory": "2Gi"}
+        extensions = extensions or {}
 
         if isinstance(image, str):
             image = SandboxImageSpec(image=image)
@@ -399,7 +403,7 @@ class SandboxSync:
         try:
             sandbox_service = factory.create_sandbox_service()
             response = sandbox_service.create_sandbox(
-                image, entrypoint, env, metadata, timeout, resource
+                image, entrypoint, env, metadata, timeout, resource, extensions
             )
             sandbox_id = response.id
             execd_endpoint = sandbox_service.get_sandbox_endpoint(response.id, DEFAULT_EXECD_PORT)

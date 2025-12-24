@@ -50,6 +50,7 @@ class SandboxesSync(Protocol):
         metadata: dict[str, str],
         timeout: timedelta,
         resource: dict[str, str],
+        extensions: dict[str, str],
     ) -> SandboxCreateResponse:
         """
         Create a new sandbox with the specified configuration (blocking).
@@ -61,6 +62,8 @@ class SandboxesSync(Protocol):
             metadata: Custom metadata.
             timeout: Sandbox lifetime / expiration duration.
             resource: Resource limits.
+            extensions: Opaque extension parameters passed through to the server as-is.
+                Prefer namespaced keys (e.g. ``storage.id``).
 
         Returns:
             Sandbox create response.

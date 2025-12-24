@@ -114,6 +114,7 @@ class SandboxesAdapter(Sandboxes):
         metadata: dict[str, str],
         timeout: timedelta,
         resource: dict[str, str],
+        extensions: dict[str, str],
     ) -> SandboxCreateResponse:
         """Create a new sandbox instance with the specified configuration."""
         logger.info(f"Creating sandbox with image: {spec.image}")
@@ -122,7 +123,13 @@ class SandboxesAdapter(Sandboxes):
             from opensandbox.api.lifecycle.api.sandboxes import post_sandboxes
 
             create_request = SandboxModelConverter.to_api_create_sandbox_request(
-                spec, entrypoint, env, metadata, timeout, resource
+                spec=spec,
+                entrypoint=entrypoint,
+                env=env,
+                metadata=metadata,
+                timeout=timeout,
+                resource=resource,
+                extensions=extensions,
             )
 
             client = await self._get_client()
