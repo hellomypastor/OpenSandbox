@@ -712,6 +712,19 @@ components:
           example:
             - "python"
             - "/app/main.py"
+
+        extensions:
+          type: object
+          additionalProperties:
+            type: string
+          description: |
+            Opaque container for provider-specific or transient parameters not supported by the core API.
+
+            **Note**: This field is reserved for internal features, experimental flags, or temporary behaviors. Standard parameters should be proposed as core API fields.
+
+            **Best Practices**:
+            - **Namespacing**: Use prefixed keys (e.g., `storage.id`) to prevent collisions.
+            - **Pass-through**: SDKs and middleware must treat this object as opaque and pass it through transparently.
     ResourceLimits:
       type: object
       description: |
