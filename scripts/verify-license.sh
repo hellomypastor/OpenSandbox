@@ -41,6 +41,24 @@ IGNORED_PATHS=(
   "scripts/spec-doc/index.html" # Generated doc
 )
 
+is_k8s_mock_go() {
+  local file="${1-}"
+  [[ -z "$file" ]] && return 1
+  # Skip any Go mocks under kubernetes/internal:
+  # - filenames ending with _mock.go
+  # - any file under a /mock/ directory
+  if [[ "$file" != kubernetes/internal/* ]]; then
+    return 1
+  fi
+  if [[ "$file" == *"_mock.go" ]]; then
+    return 0
+  fi
+  if [[ "$file" == */mock/*.go ]]; then
+    return 0
+  fi
+  return 1
+}
+
 is_generated_to_skip() {
   local file="$1"
   # Skip common generated files
@@ -90,6 +108,10 @@ missing=()
 while IFS= read -r file; do
   # Skip ignored paths
   if is_ignored "$file"; then
+    continue
+  fi
+  # Skip kubernetes internal mock go files
+  if is_k8s_mock_go "$file"; then
     continue
   fi
   # Skip generated files

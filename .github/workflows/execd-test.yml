@@ -26,7 +26,7 @@ jobs:
       - name: Build (Multi platform compile)
         run: |
           cd components/execd
-          # 
+          #
           make multi-build
 
       - name: Run tests
@@ -72,7 +72,7 @@ jobs:
           cd components/execd
           chmod +x tests/smoke.sh
           ./tests/smoke.sh
-          
+
           sleep 5
           cat execd.log
           cat /tmp/jupyter.log

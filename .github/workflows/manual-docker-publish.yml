@@ -52,10 +52,10 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/docker/* ]]; then
             TAG_PATH="${{ github.ref }}"
             TAG_PATH="${TAG_PATH#refs/tags/}"
-          
+
             COMPONENT=$(echo "$TAG_PATH" | cut -d'/' -f2)
             IMAGE_TAG=$(echo "$TAG_PATH" | cut -d'/' -f3)
-          
+
             echo "component=$COMPONENT" >> $GITHUB_OUTPUT
             echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
           else
@@ -74,13 +74,13 @@ jobs:
         run: |
           COMPONENT="${{ steps.parse_tag.outputs.component }}"
           IMAGE_TAG="${{ steps.parse_tag.outputs.image_tag }}"
-          
+
           if [ "$COMPONENT" == "execd" ]; then
             cd components/execd
           else
             cd sandboxes/$COMPONENT
           fi
-          
+
           export TAG=$IMAGE_TAG
           chmod +x build.sh
           ./build.sh
