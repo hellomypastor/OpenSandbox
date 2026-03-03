@@ -121,6 +121,14 @@ with sandbox:
     sandbox.kill()
 ```
 
+### 运行时安装 Python 依赖
+
+可以直接通过 `sandbox.commands.run(...)` 安装依赖：
+
+```python
+execution = await sandbox.commands.run("pip install pandas numpy")
+```
+
 ## 运行时配置
 
 ### Docker 镜像

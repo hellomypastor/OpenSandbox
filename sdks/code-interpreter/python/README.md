@@ -126,6 +126,14 @@ with sandbox:
     sandbox.kill()
 ```
 
+### Installing Python packages at runtime
+
+You can install packages directly via `sandbox.commands.run(...)`:
+
+```python
+execution = await sandbox.commands.run("pip install pandas numpy")
+```
+
 ## Runtime Configuration
 
 ### Docker Image

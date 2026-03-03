@@ -10,7 +10,7 @@
 - **生命周期管理**：标准化 REST API 覆盖创建、启动、暂停、恢复、删除
 - **可插拔运行时**：
   - **Docker**：已支持生产部署
-  - **Kubernetes**：配置占位，开发中
+  - **Kubernetes**：已支持生产部署
 - **自动过期**：可配置 TTL，支持续期
 - **访问控制**：API Key 认证（`OPEN-SANDBOX-API-KEY`），本地/开发可配置为空跳过
 - **网络模式**：
@@ -33,7 +33,7 @@
 - **包管理器**：[uv](https://github.com/astral-sh/uv)（推荐）或 pip
 - **运行时后端**：
   - Docker Engine 20.10+（使用 Docker 运行时）
-  - Kubernetes 1.21+（使用 Kubernetes 运行时，开发中）
+  - Kubernetes 1.22.4+（使用 Kubernetes 运行时）
 - **操作系统**：Linux、macOS 或带 WSL2 的 Windows
 
 ## 快速开始

@@ -11,7 +11,7 @@
     <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" />
   </a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0.html">
-    <img src="https://img.shields.io/github/license/alibaba/OpenSandbox.svg" alt="license" />
+    <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="license" />
   </a>
   <a href="https://badge.fury.io/py/opensandbox">
     <img src="https://badge.fury.io/py/opensandbox.svg" alt="PyPI version" />
@@ -159,6 +159,7 @@ OpenSandbox provides rich examples demonstrating sandbox usage in different scen
 - **[iflow-cli](examples/iflow-cli/README.md)** - Run iFLow CLI inside OpenSandbox.
 - **[langgraph](examples/langgraph/README.md)** - LangGraph state-machine workflow that creates/runs a sandbox job with fallback retry.
 - **[google-adk](examples/google-adk/README.md)** - Google ADK agent using OpenSandbox tools to write/read files and run commands.
+- **[nullclaw](examples/nullclaw/README.md)** - Launch a [Nullclaw](https://github.com/nullclaw/nullclaw) Gateway inside a sandbox.
 - **[openclaw](examples/openclaw/README.md)** - Launch an OpenClaw Gateway inside a sandbox.
 
 #### 🌐 Browser and Desktop Environments
@@ -229,4 +230,3 @@ This project is open source under the [Apache 2.0 License](LICENSE).
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=alibaba/OpenSandbox&type=date&legend=top-left)](https://www.star-history.com/#alibaba/OpenSandbox&type=date&legend=top-left)
-
