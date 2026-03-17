@@ -35,7 +35,7 @@ import com.alibaba.opensandbox.sandbox.domain.models.execd.executions.Execution
 import com.alibaba.opensandbox.sandbox.domain.models.execd.executions.RunCommandRequest
 import com.alibaba.opensandbox.sandbox.domain.models.sandboxes.SandboxEndpoint
 import com.alibaba.opensandbox.sandbox.domain.services.Commands
-import com.alibaba.opensandbox.sandbox.infrastructure.adapters.converter.ExecutionConverter.toApiRunCommandPayload
+import com.alibaba.opensandbox.sandbox.infrastructure.adapters.converter.ExecutionConverter.toApiRunCommandRequest
 import com.alibaba.opensandbox.sandbox.infrastructure.adapters.converter.ExecutionConverter.toCommandStatus
 import com.alibaba.opensandbox.sandbox.infrastructure.adapters.converter.ExecutionEventDispatcher
 import com.alibaba.opensandbox.sandbox.infrastructure.adapters.converter.jsonParser
@@ -85,7 +85,7 @@ internal class CommandsAdapter(
                 Request.Builder()
                     .url("${httpClientProvider.config.protocol}://${execdEndpoint.endpoint}$RUN_COMMAND_PATH")
                     .post(
-                        jsonParser.encodeToString(request.toApiRunCommandPayload()).toRequestBody("application/json".toMediaType()),
+                        jsonParser.encodeToString(request.toApiRunCommandRequest()).toRequestBody("application/json".toMediaType()),
                     )
                     .headers(execdEndpoint.headers.toHeaders())
                     .build()

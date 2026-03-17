@@ -121,7 +121,8 @@ class CommandsAdapterTest {
         val envs = requestBodyJson["envs"]?.jsonObject
         assertEquals("test", envs?.get("APP_ENV")?.jsonPrimitive?.content)
         assertEquals("debug", envs?.get("LOG_LEVEL")?.jsonPrimitive?.content)
-        assertEquals(null, requestBodyJson["background"]?.jsonPrimitive?.booleanOrNull)
+        // Builder defaults background to false; request body always includes it
+        assertEquals(false, requestBodyJson["background"]?.jsonPrimitive?.booleanOrNull)
     }
 
     @Test

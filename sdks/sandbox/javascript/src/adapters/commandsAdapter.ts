@@ -33,13 +33,9 @@ function joinUrl(baseUrl: string, pathname: string): string {
   return `${base}${path}`;
 }
 
+/** Request body for POST /command (from generated spec; includes uid, gid, envs). */
 type ApiRunCommandRequest =
   ExecdPaths["/command"]["post"]["requestBody"]["content"]["application/json"];
-type ApiRunCommandRequestWithExtensions = ApiRunCommandRequest & {
-  uid?: number;
-  gid?: number;
-  envs?: Record<string, string>;
-};
 type ApiCommandStatusOk =
   ExecdPaths["/command/status/{id}"]["get"]["responses"][200]["content"]["application/json"];
 type ApiCommandLogsOk =
@@ -50,7 +46,7 @@ function toRunCommandRequest(command: string, opts?: RunCommandOpts): ApiRunComm
     throw new Error("uid is required when gid is provided");
   }
 
-  const body: ApiRunCommandRequestWithExtensions = {
+  const body: ApiRunCommandRequest = {
     command,
     cwd: opts?.workingDirectory,
     background: !!opts?.background,

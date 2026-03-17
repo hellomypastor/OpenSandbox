@@ -158,7 +158,8 @@ export interface paths {
          *     The command can run in foreground or background mode. The response includes stdout, stderr,
          *     execution status, and completion events.
          *     Optionally specify `timeout` (milliseconds) to enforce a maximum runtime; the server will
-         *     terminate the process when the timeout is reached.
+         *     terminate the process when the timeout is reached. You can also pass `uid`/`gid` to run
+         *     with specific user/group IDs, and `envs` to inject environment variables.
          */
         post: operations["runCommand"];
         /**
@@ -527,6 +528,28 @@ export interface components {
              * @example 60000
              */
             timeout?: number;
+            /**
+             * Format: int32
+             * @description Unix user ID used to run the command. If `gid` is provided, `uid` is required.
+             * @example 1000
+             */
+            uid?: number;
+            /**
+             * Format: int32
+             * @description Unix group ID used to run the command. Requires `uid` to be provided.
+             * @example 1000
+             */
+            gid?: number;
+            /**
+             * @description Environment variables injected into the command process.
+             * @example {
+             *       "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+             *       "PYTHONUNBUFFERED": "1"
+             *     }
+             */
+            envs?: {
+                [key: string]: string;
+            };
         };
         /** @description Command execution status (foreground or background) */
         CommandStatusResponse: {
