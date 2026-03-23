@@ -20,7 +20,7 @@ TAG=${TAG:-latest}
 COMPONENT=${COMPONENT:-controller}
 PUSH=${PUSH:-true}
 
-# Image repository
+DOCKERHUB_REPO="opensandbox"
 ACR_REPO="sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox"
 
 # Component specific settings
@@ -47,17 +47,19 @@ echo "========================================="
 PLATFORMS="linux/amd64,linux/arm64"
 
 if [ "$PUSH" == "true" ]; then
-    # Build and push to ACR registry
+    # Build and push to registry
     docker buildx build \
         --platform $PLATFORMS \
         $BUILD_ARG \
-        -t ${ACR_REPO}/${IMAGE_NAME}:${TAG} \
+        -t "${DOCKERHUB_REPO}/${IMAGE_NAME}:${TAG}" \
+        -t "${ACR_REPO}/${IMAGE_NAME}:${TAG}" \
         --push \
         -f Dockerfile \
         .
     
     echo "========================================="
     echo "Successfully built and pushed:"
+    echo "  ${DOCKERHUB_REPO}/${IMAGE_NAME}:${TAG}"
     echo "  ${ACR_REPO}/${IMAGE_NAME}:${TAG}"
     echo "========================================="
 else
