@@ -66,6 +66,10 @@ type SandboxCreateOptions struct {
 	// Extensions for provider-specific parameters.
 	Extensions map[string]string
 
+	// Platform selects the target OS/arch for the sandbox (e.g. {"os":
+	// "windows", "arch": "amd64"}). When nil the server applies its default.
+	Platform *PlatformSpec
+
 	// SkipHealthCheck skips the WaitUntilReady call after creation.
 	SkipHealthCheck bool
 
@@ -132,6 +136,7 @@ func CreateSandbox(ctx context.Context, config ConnectionConfig, opts SandboxCre
 		NetworkPolicy:  opts.NetworkPolicy,
 		Volumes:        opts.Volumes,
 		Extensions:     opts.Extensions,
+		Platform:       opts.Platform,
 	}
 	if opts.Image != "" {
 		req.Image = &ImageSpec{URI: opts.Image, Auth: opts.ImageAuth}

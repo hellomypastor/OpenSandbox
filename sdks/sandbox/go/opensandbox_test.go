@@ -263,6 +263,68 @@ func TestCreateSandbox_FromSnapshot(t *testing.T) {
 	require.NoErrorf(t, err, "CreateSandbox from snapshot")
 }
 
+func TestCreateSandbox_Platform(t *testing.T) {
+	_, client := newLifecycleServer(t, func(w http.ResponseWriter, r *http.Request) {
+		var req CreateSandboxRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			assert.Fail(t, fmt.Sprintf("decode request: %v", err))
+			return
+		}
+		require.NotNil(t, req.Platform, "expected Platform to be sent in the request")
+		require.Equal(t, OSWindows, req.Platform.OS, "Platform.OS")
+		require.Equal(t, ArchAMD64, req.Platform.Arch, "Platform.Arch")
+
+		jsonResponse(w, http.StatusCreated, SandboxInfo{
+			ID:        "sbx-windows",
+			Status:    SandboxStatus{State: StatePending},
+			Platform:  &PlatformSpec{OS: OSWindows, Arch: ArchAMD64},
+			CreatedAt: time.Now().UTC().Truncate(time.Second),
+		})
+	})
+
+	info, err := client.CreateSandbox(context.Background(), CreateSandboxRequest{
+		Image:          &ImageSpec{URI: "dockurr/windows:latest"},
+		Entrypoint:     []string{"cmd", "/c", "echo hi"},
+		ResourceLimits: ResourceLimits{"cpu": "2", "memory": "4G", "disk": "64G"},
+		Platform:       &PlatformSpec{OS: OSWindows, Arch: ArchAMD64},
+	})
+	require.NoErrorf(t, err, "CreateSandbox with Platform")
+	require.NotNil(t, info.Platform, "response should echo Platform")
+	require.Equal(t, OSWindows, info.Platform.OS, "echoed Platform.OS")
+	require.Equal(t, ArchAMD64, info.Platform.Arch, "echoed Platform.Arch")
+}
+
+func TestCreateSandbox_PlatformOmittedWhenNil(t *testing.T) {
+	_, client := newLifecycleServer(t, func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			assert.Fail(t, fmt.Sprintf("read request body: %v", err))
+			return
+		}
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal(body, &raw); err != nil {
+			assert.Fail(t, fmt.Sprintf("unmarshal request body: %v", err))
+			return
+		}
+		if _, present := raw["platform"]; present {
+			assert.Fail(t, "platform should be omitted from JSON when nil")
+		}
+
+		jsonResponse(w, http.StatusCreated, SandboxInfo{
+			ID:        "sbx-no-platform",
+			Status:    SandboxStatus{State: StatePending},
+			CreatedAt: time.Now().UTC().Truncate(time.Second),
+		})
+	})
+
+	_, err := client.CreateSandbox(context.Background(), CreateSandboxRequest{
+		Image:          &ImageSpec{URI: "python:3.12"},
+		Entrypoint:     []string{"/bin/sh"},
+		ResourceLimits: ResourceLimits{"cpu": "500m"},
+	})
+	require.NoErrorf(t, err, "CreateSandbox without Platform")
+}
+
 func TestGetSandbox(t *testing.T) {
 	want := SandboxInfo{
 		ID: "sbx-456",
