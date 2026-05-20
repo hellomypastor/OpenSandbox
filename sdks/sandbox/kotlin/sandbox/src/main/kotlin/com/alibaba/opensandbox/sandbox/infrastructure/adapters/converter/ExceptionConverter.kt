@@ -39,6 +39,17 @@ import com.alibaba.opensandbox.sandbox.api.execd.infrastructure.ClientException 
 import com.alibaba.opensandbox.sandbox.api.execd.infrastructure.ServerError as ExecdServerError
 import com.alibaba.opensandbox.sandbox.api.execd.infrastructure.ServerException as ExecdServerException
 
+/**
+ * Returns `true` when this throwable represents an expected "file or directory does not exist"
+ * outcome rather than a genuine failure.
+ *
+ * Callers (and the adapters themselves) use this to avoid treating a missing file as an error,
+ * e.g. logging it at ERROR level with a full stack trace, which is just noise for a perfectly
+ * normal control-flow case such as polling for a not-yet-created file.
+ */
+fun Throwable.isFileNotFound(): Boolean =
+    this is SandboxApiException && (error.code == SandboxError.FILE_NOT_FOUND || statusCode == 404)
+
 fun Exception.toSandboxException(): SandboxException {
     return when (this) {
         is SandboxException -> this
