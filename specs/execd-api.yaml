@@ -1345,7 +1345,8 @@ components:
       properties:
         old:
           type: string
-          description: String to be replaced
+          description: String to be replaced (must not be empty)
+          minLength: 1
           example: "localhost"
         new:
           type: string
