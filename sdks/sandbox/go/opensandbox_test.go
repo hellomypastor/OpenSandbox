@@ -1570,9 +1570,6 @@ func TestReplaceInFiles(t *testing.T) {
 		if r.URL.Path != "/files/replace" {
 			assert.Fail(t, fmt.Sprintf("expected /files/replace, got %s", r.URL.Path))
 		}
-		if r.URL.Query().Get("verbose") != "true" {
-			assert.Fail(t, "expected verbose=true query param")
-		}
 
 		var req ReplaceRequest
 		json.NewDecoder(r.Body).Decode(&req)
@@ -1584,6 +1581,24 @@ func TestReplaceInFiles(t *testing.T) {
 			assert.Fail(t, fmt.Sprintf("replace item = %+v", item))
 		}
 
+		w.WriteHeader(http.StatusOK)
+	})
+
+	err := client.ReplaceInFiles(context.Background(), ReplaceRequest{
+		"/tmp/config.txt": {Old: "localhost", New: "production.example.com"},
+	})
+	require.NoErrorf(t, err, "ReplaceInFiles")
+}
+
+func TestReplaceInFilesDetailed(t *testing.T) {
+	_, client := newExecdServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/files/replace" {
+			assert.Fail(t, fmt.Sprintf("expected /files/replace, got %s", r.URL.Path))
+		}
+		if r.URL.Query().Get("verbose") != "true" {
+			assert.Fail(t, "expected verbose=true query param")
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(ReplaceResponse{
@@ -1591,10 +1606,10 @@ func TestReplaceInFiles(t *testing.T) {
 		})
 	})
 
-	resp, err := client.ReplaceInFiles(context.Background(), ReplaceRequest{
+	resp, err := client.ReplaceInFilesDetailed(context.Background(), ReplaceRequest{
 		"/tmp/config.txt": {Old: "localhost", New: "production.example.com"},
 	})
-	require.NoErrorf(t, err, "ReplaceInFiles")
+	require.NoErrorf(t, err, "ReplaceInFilesDetailed")
 	if resp == nil {
 		assert.Fail(t, "expected non-nil response")
 	}

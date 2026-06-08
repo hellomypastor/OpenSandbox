@@ -148,10 +148,21 @@ public interface ISandboxFiles
     /// </summary>
     /// <param name="entries">The content replace entries.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <exception cref="InvalidArgumentException">Thrown when request values are invalid.</exception>
+    /// <exception cref="SandboxException">Thrown when the execd service request fails.</exception>
+    Task ReplaceContentsAsync(
+        IEnumerable<ContentReplaceEntry> entries,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Replaces content in files and returns per-file replacement counts.
+    /// </summary>
+    /// <param name="entries">The content replace entries.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of replacement results with counts per file.</returns>
     /// <exception cref="InvalidArgumentException">Thrown when request values are invalid.</exception>
     /// <exception cref="SandboxException">Thrown when the execd service request fails.</exception>
-    Task<IReadOnlyList<ContentReplaceResult>> ReplaceContentsAsync(
+    Task<IReadOnlyList<ContentReplaceResult>> ReplaceContentsDetailedAsync(
         IEnumerable<ContentReplaceEntry> entries,
         CancellationToken cancellationToken = default);
 

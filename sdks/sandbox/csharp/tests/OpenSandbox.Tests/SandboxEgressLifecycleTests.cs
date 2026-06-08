@@ -367,7 +367,10 @@ public class SandboxEgressLifecycleTests
         public Task MoveFilesAsync(IEnumerable<MoveEntry> entries, CancellationToken cancellationToken = default) =>
             throw new NotImplementedException();
 
-        public Task<IReadOnlyList<ContentReplaceResult>> ReplaceContentsAsync(IEnumerable<ContentReplaceEntry> entries, CancellationToken cancellationToken = default) =>
+        public Task ReplaceContentsAsync(IEnumerable<ContentReplaceEntry> entries, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<IReadOnlyList<ContentReplaceResult>> ReplaceContentsDetailedAsync(IEnumerable<ContentReplaceEntry> entries, CancellationToken cancellationToken = default) =>
             throw new NotImplementedException();
 
         public Task SetPermissionsAsync(IEnumerable<SetPermissionEntry> entries, CancellationToken cancellationToken = default) =>

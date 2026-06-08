@@ -957,6 +957,12 @@ test("03 filesystem operations: CRUD + replace/move/delete + range + stream", as
   expect(await sandbox.files.readFile(batchA)).toBe("hi world");
   expect(await sandbox.files.readFile(batchB)).toBe("hi hi");
 
+  // Verify original replaceContents (void return) still works
+  await sandbox.files.replaceContents([
+    { path: file1, oldContent: "Replaced line in file1", newContent: "Final line in file1" },
+  ]);
+  expect((await sandbox.files.readFile(file1)).includes("Final line in file1")).toBe(true);
+
   const movedPath = `${dir2}/moved_file3.txt`;
   await sandbox.files.moveFiles([{ src: file3, dest: movedPath }]);
   expect(await sandbox.files.readFile(movedPath)).toBe(content);

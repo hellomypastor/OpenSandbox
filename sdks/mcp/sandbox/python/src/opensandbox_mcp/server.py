@@ -700,7 +700,7 @@ def register_tools(
             ContentReplaceEntry(**entry.model_dump(exclude_none=True))
             for entry in entries
         ]
-        return await sandbox.files.replace_contents(replace_entries)
+        return await sandbox.files.replace_contents_detailed(replace_entries)
 
     @tool()
     async def sandbox_get_endpoint(

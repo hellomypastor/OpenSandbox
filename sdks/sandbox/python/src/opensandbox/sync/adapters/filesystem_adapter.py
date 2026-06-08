@@ -287,7 +287,21 @@ class FilesystemAdapterSync(FilesystemSync):
             logger.error("Failed to set permissions", exc_info=e)
             raise ExceptionConverter.to_sandbox_exception(e) from e
 
-    def replace_contents(self, entries: list[ContentReplaceEntry]) -> list[ContentReplaceResult]:
+    def replace_contents(self, entries: list[ContentReplaceEntry]) -> None:
+        try:
+            from opensandbox.api.execd.api.filesystem import replace_content
+
+            response_obj = replace_content.sync_detailed(
+                client=self._client,
+                body=FilesystemModelConverter.to_api_replace_content_body(entries),
+            )
+
+            handle_api_error(response_obj, "Replace contents")
+        except Exception as e:
+            logger.error("Failed to replace contents", exc_info=e)
+            raise ExceptionConverter.to_sandbox_exception(e) from e
+
+    def replace_contents_detailed(self, entries: list[ContentReplaceEntry]) -> list[ContentReplaceResult]:
         try:
             from opensandbox.api.execd.api.filesystem import replace_content
 

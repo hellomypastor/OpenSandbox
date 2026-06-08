@@ -172,7 +172,7 @@ func TestFilesystem_ReplaceInFiles(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sb.DeleteFiles(context.Background(), []string{"/tmp/replace-e2e.txt"}) })
 
-	resp, err := sb.ReplaceInFiles(ctx, opensandbox.ReplaceRequest{
+	resp, err := sb.ReplaceInFilesDetailed(ctx, opensandbox.ReplaceRequest{
 		"/tmp/replace-e2e.txt": {Old: "localhost", New: "example.com"},
 	})
 	require.NoError(t, err)
@@ -184,7 +184,7 @@ func TestFilesystem_ReplaceInFiles(t *testing.T) {
 	require.Contains(t, exec.Text(), "example.com")
 
 	// No match → replacedCount=0
-	resp, err = sb.ReplaceInFiles(ctx, opensandbox.ReplaceRequest{
+	resp, err = sb.ReplaceInFilesDetailed(ctx, opensandbox.ReplaceRequest{
 		"/tmp/replace-e2e.txt": {Old: "nonexistent", New: "irrelevant"},
 	})
 	require.NoError(t, err)
@@ -194,9 +194,15 @@ func TestFilesystem_ReplaceInFiles(t *testing.T) {
 	_, err = sb.RunCommand(ctx, `echo "foo bar foo baz foo" > /tmp/replace-multi.txt`, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = sb.DeleteFiles(context.Background(), []string{"/tmp/replace-multi.txt"}) })
-	resp, err = sb.ReplaceInFiles(ctx, opensandbox.ReplaceRequest{
+	resp, err = sb.ReplaceInFilesDetailed(ctx, opensandbox.ReplaceRequest{
 		"/tmp/replace-multi.txt": {Old: "foo", New: "qux"},
 	})
 	require.NoError(t, err)
 	require.Equal(t, 3, resp["/tmp/replace-multi.txt"].ReplacedCount)
+
+	// Verify original ReplaceInFiles (error-only) still works
+	err = sb.ReplaceInFiles(ctx, opensandbox.ReplaceRequest{
+		"/tmp/replace-multi.txt": {Old: "qux", New: "done"},
+	})
+	require.NoError(t, err)
 }

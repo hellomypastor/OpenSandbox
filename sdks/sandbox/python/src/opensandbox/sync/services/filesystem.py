@@ -203,9 +203,21 @@ class FilesystemSync(Protocol):
         """
         ...
 
-    def replace_contents(self, entries: list[ContentReplaceEntry]) -> list[ContentReplaceResult]:
+    def replace_contents(self, entries: list[ContentReplaceEntry]) -> None:
         """
         Replace content in files based on search and replace patterns.
+
+        Args:
+            entries: List of ContentReplaceEntry objects specifying replacement operations.
+
+        Raises:
+            SandboxException: If the operation fails.
+        """
+        ...
+
+    def replace_contents_detailed(self, entries: list[ContentReplaceEntry]) -> list[ContentReplaceResult]:
+        """
+        Replace content in files and return per-file replacement counts.
 
         Args:
             entries: List of ContentReplaceEntry objects specifying replacement operations.

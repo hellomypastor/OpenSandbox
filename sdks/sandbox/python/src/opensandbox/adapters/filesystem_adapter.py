@@ -411,8 +411,25 @@ class FilesystemAdapter(Filesystem):
             logger.error("Failed to set permissions", exc_info=e)
             raise ExceptionConverter.to_sandbox_exception(e) from e
 
-    async def replace_contents(self, entries: list[ContentReplaceEntry]) -> list[ContentReplaceResult]:
+    async def replace_contents(self, entries: list[ContentReplaceEntry]) -> None:
         """Replace file contents using auto-generated API."""
+        try:
+            from opensandbox.api.execd.api.filesystem import replace_content
+
+            client = await self._get_client()
+            response_obj = await replace_content.asyncio_detailed(
+                client=client,
+                body=FilesystemModelConverter.to_api_replace_content_body(entries),
+            )
+
+            handle_api_error(response_obj, "Replace contents")
+
+        except Exception as e:
+            logger.error("Failed to replace contents", exc_info=e)
+            raise ExceptionConverter.to_sandbox_exception(e) from e
+
+    async def replace_contents_detailed(self, entries: list[ContentReplaceEntry]) -> list[ContentReplaceResult]:
+        """Replace file contents and return per-file replacement counts."""
         try:
             from opensandbox.api.execd.api.filesystem import replace_content
 

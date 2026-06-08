@@ -342,7 +342,20 @@ export class FilesystemAdapter implements SandboxFiles {
     throwOnOpenApiFetchError({ error, response }, "Move files failed");
   }
 
-  async replaceContents(entries: ContentReplaceEntry[]): Promise<ContentReplaceResult[]> {
+  async replaceContents(entries: ContentReplaceEntry[]): Promise<void> {
+    const req: Record<string, ReplaceFileContentItem> = {};
+    for (const e of entries) {
+      req[e.path] = { old: e.oldContent, new: e.newContent };
+    }
+    const body =
+      req as unknown as typeof FilesystemAdapter.Api.ReplaceContentsRequest;
+    const { error, response } = await this.client.POST("/files/replace", {
+      body,
+    });
+    throwOnOpenApiFetchError({ error, response }, "Replace contents failed");
+  }
+
+  async replaceContentsDetailed(entries: ContentReplaceEntry[]): Promise<ContentReplaceResult[]> {
     const req: Record<string, ReplaceFileContentItem> = {};
     for (const e of entries) {
       req[e.path] = { old: e.oldContent, new: e.newContent };

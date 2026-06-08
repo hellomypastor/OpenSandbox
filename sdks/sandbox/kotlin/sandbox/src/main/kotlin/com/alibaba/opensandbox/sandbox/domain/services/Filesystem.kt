@@ -186,10 +186,18 @@ interface Filesystem {
      * Replaces content in files based on search and replace patterns.
      *
      * @param entries List of ContentReplaceEntry objects specifying replacement operations
+     * @throws SandboxException if the operation fails
+     */
+    fun replaceContents(entries: List<ContentReplaceEntry>)
+
+    /**
+     * Replaces content in files and returns per-file replacement counts.
+     *
+     * @param entries List of ContentReplaceEntry objects specifying replacement operations
      * @return List of ContentReplaceResult with replacement counts per file
      * @throws SandboxException if the operation fails
      */
-    fun replaceContents(entries: List<ContentReplaceEntry>): List<ContentReplaceResult>
+    fun replaceContentsDetailed(entries: List<ContentReplaceEntry>): List<ContentReplaceResult>
 
     /**
      * Searches for files and directories based on the specified criteria.

@@ -309,7 +309,17 @@ internal class FilesystemAdapter(
         }
     }
 
-    override fun replaceContents(entries: List<ContentReplaceEntry>): List<ContentReplaceResult> {
+    override fun replaceContents(entries: List<ContentReplaceEntry>) {
+        return try {
+            val replaceMap = entries.toApiReplaceFileContentMap()
+            api.replaceContent(replaceMap)
+        } catch (e: Exception) {
+            logger.error("Failed to replace contents", e)
+            throw e.toSandboxException()
+        }
+    }
+
+    override fun replaceContentsDetailed(entries: List<ContentReplaceEntry>): List<ContentReplaceResult> {
         return try {
             val replaceMap = entries.toApiReplaceFileContentMap()
             val jsonBody =

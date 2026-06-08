@@ -1230,6 +1230,12 @@ class TestSandboxE2ESync:
 
         sandbox.files.delete_files([multi_match_file, batch_file_a, batch_file_b])
 
+        # Verify original replace_contents (no return value) still works
+        sandbox.files.replace_contents([
+            ContentReplaceEntry(path=test_file1, old_content="Replaced line in file1", new_content="Final line in file1")
+        ])
+        assert "Final line in file1" in sandbox.files.read_file(test_file1, encoding="utf-8")
+
         # Move/rename a file via API (move_files)
         moved_path = f"{test_dir2}/moved_file3.txt"
         sandbox.files.move_files([MoveEntry(src=test_file3, dest=moved_path)])

@@ -1484,7 +1484,7 @@ class TestSandboxE2E:
             old_content="Appended line to file1",
             new_content="Replaced line in file1",
         )
-        replace_results = await sandbox.files.replace_contents([replace_entry])
+        replace_results = await sandbox.files.replace_contents_detailed([replace_entry])
         assert len(replace_results) == 1
         assert replace_results[0].path == test_file1
         assert replace_results[0].replaced_count == 1
@@ -1537,6 +1537,12 @@ class TestSandboxE2E:
         assert await sandbox.files.read_file(batch_file_b, encoding="utf-8") == "hi hi"
 
         await sandbox.files.delete_files([multi_match_file, batch_file_a, batch_file_b])
+
+        logger.info("Step 8d: Verify original replace_contents (no return value) still works")
+        await sandbox.files.replace_contents([
+            ContentReplaceEntry(path=test_file1, old_content="Replaced line in file1", new_content="Final line in file1")
+        ])
+        assert "Final line in file1" in await sandbox.files.read_file(test_file1, encoding="utf-8")
 
         logger.info("Step 9: Move/rename a file via API (move_files)")
         moved_path = f"{test_dir2}/moved_file3.txt"
