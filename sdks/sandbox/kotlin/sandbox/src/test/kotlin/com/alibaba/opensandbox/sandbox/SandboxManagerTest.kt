@@ -284,4 +284,20 @@ class SandboxManagerTest {
             sandboxManager.waitForSnapshotReady("snapshot-id", Duration.ofMillis(80), Duration.ofMillis(100))
         }
     }
+
+    @Test
+    fun `waitForSnapshotReady rejects a READY response that blocks past the deadline`() {
+        // Each poll blocks ~80ms; with a 100ms timeout the READY response is produced only after the
+        // deadline elapses, so it must surface as a timeout rather than a late success.
+        val sequence = listOf(snapshot(SnapshotState.CREATING), snapshot(SnapshotState.READY))
+        var index = 0
+        every { sandboxService.getSnapshot("snapshot-id") } answers {
+            Thread.sleep(80)
+            sequence[index++]
+        }
+
+        assertThrows(SandboxReadyTimeoutException::class.java) {
+            sandboxManager.waitForSnapshotReady("snapshot-id", Duration.ofMillis(100), Duration.ofMillis(10))
+        }
+    }
 }

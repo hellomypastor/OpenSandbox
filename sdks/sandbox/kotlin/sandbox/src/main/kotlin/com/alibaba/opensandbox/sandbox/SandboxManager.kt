@@ -235,7 +235,9 @@ class SandboxManager internal constructor(
      * until the snapshot becomes ready, fails, or the timeout elapses.
      *
      * @param snapshotId Unique identifier of the snapshot to wait for
-     * @param timeout Maximum time to wait for the snapshot to become ready
+     * @param timeout Maximum time to wait for the snapshot to become ready. Defaults to 900s to
+     * cover the server's `snapshot_create_timeout_seconds` (Kubernetes deployments may take up to
+     * the controller `commitJobTimeout`, 10m by default, before a snapshot is Ready or Failed)
      * @param pollingInterval Time between successive [getSnapshot] polls
      * @return The ready [SnapshotInfo]
      * @throws SnapshotFailedException if the snapshot reaches the [SnapshotState.FAILED] state
@@ -245,7 +247,7 @@ class SandboxManager internal constructor(
     @JvmOverloads
     fun waitForSnapshotReady(
         snapshotId: String,
-        timeout: Duration = Duration.ofMinutes(5),
+        timeout: Duration = Duration.ofSeconds(900),
         pollingInterval: Duration = Duration.ofSeconds(2),
     ): SnapshotInfo {
         if (pollingInterval.isNegative || pollingInterval.isZero) {
@@ -267,6 +269,13 @@ class SandboxManager internal constructor(
             val snapshot = getSnapshot(snapshotId)
             when (snapshot.status.state) {
                 SnapshotState.READY -> {
+                    // getSnapshot itself may block past the deadline on a slow server; only accept
+                    // READY if we are still within the timeout, otherwise surface a timeout.
+                    if (System.currentTimeMillis() >= deadline) {
+                        throw SandboxReadyTimeoutException(
+                            "Snapshot $snapshotId did not become ready within ${timeout.seconds}s ($attempt attempts)",
+                        )
+                    }
                     logger.info("Snapshot {} is ready after {} attempts", snapshotId, attempt)
                     return snapshot
                 }
