@@ -7,7 +7,7 @@ last-updated: 2026-05-07
 status: draft
 ---
 
-# OSEP-0012: Multi-Tenancy Support for Kubernetes Runtime
+# OSEP-0014: Multi-Tenancy Support for Kubernetes Runtime
 
 <!-- toc -->
 - [Summary](#summary)
