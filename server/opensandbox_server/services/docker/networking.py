@@ -53,7 +53,11 @@ from opensandbox_server.services.endpoint_auth import (
     build_egress_auth_headers,
     merge_endpoint_headers,
 )
-from opensandbox_server.services.validators import ensure_egress_configured, ensure_egress_runtime_compatible
+from opensandbox_server.services.validators import (
+    ensure_credential_proxy_configured,
+    ensure_egress_configured,
+    ensure_egress_runtime_compatible,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +143,7 @@ class DockerNetworkingMixin:
 
         # Common validation: egress.image must be configured
         ensure_egress_configured(request.network_policy, self.app_config.egress)
+        ensure_credential_proxy_configured(request.credential_proxy, self.app_config.egress)
         ensure_egress_runtime_compatible(request.network_policy, self.app_config.secure_runtime)
 
     def _ensure_secure_access_support(self, request) -> None:

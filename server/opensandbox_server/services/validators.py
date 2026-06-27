@@ -30,7 +30,7 @@ import re
 from opensandbox_server.services.constants import RESERVED_LABEL_PREFIX, SandboxErrorCodes
 
 if TYPE_CHECKING:
-    from opensandbox_server.api.schema import NetworkPolicy, OSSFS, PlatformSpec, Volume
+    from opensandbox_server.api.schema import CredentialProxyConfig, NetworkPolicy, OSSFS, PlatformSpec, Volume
     from opensandbox_server.config import EgressConfig, SecureRuntimeConfig
 
 
@@ -600,6 +600,25 @@ def ensure_egress_configured(
         )
 
 
+def ensure_credential_proxy_configured(
+    credential_proxy: Optional["CredentialProxyConfig"],
+    egress_config: Optional["EgressConfig"],
+) -> None:
+    """Require network-layer enforcement when Credential Proxy is enabled."""
+    if not credential_proxy or not credential_proxy.enabled:
+        return
+
+    egress_mode = egress_config.mode if egress_config else None
+    if egress_mode != "dns+nft":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": SandboxErrorCodes.INVALID_PARAMETER,
+                "message": 'credentialProxy.enabled requires server [egress].mode = "dns+nft".',
+            },
+        )
+
+
 _GVISOR_NAT_INCOMPATIBLE_RUNTIMES = frozenset({"gvisor"})
 
 
@@ -732,6 +751,7 @@ __all__ = [
     "ensure_platform_valid",
     "ensure_metadata_labels",
     "ensure_egress_configured",
+    "ensure_credential_proxy_configured",
     "ensure_valid_volume_name",
     "ensure_valid_mount_path",
     "ensure_valid_sub_path",

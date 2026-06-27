@@ -34,7 +34,7 @@ const credentialVaultTest = process.env.OPENSANDBOX_CREDENTIAL_VAULT_E2E_TARGET_
 
 credentialVaultTest("credential vault injects all auth types", async () => {
   const targetIp = credentialVaultTargetIp();
-    const sandbox = await createCredentialVaultSandbox(targetIp);
+  const sandbox = await createCredentialVaultSandbox(targetIp);
 
   try {
     const state = await sandbox.credentialVault.create({
@@ -86,7 +86,7 @@ credentialVaultTest("credential vault injects all auth types", async () => {
 
 credentialVaultTest("credential vault runtime mutation adds replaces and deletes binding", async () => {
   const targetIp = credentialVaultTargetIp();
-    const sandbox = await createCredentialVaultSandbox(targetIp);
+  const sandbox = await createCredentialVaultSandbox(targetIp);
 
   try {
     let state = await sandbox.credentialVault.create({ credentials: [], bindings: [] });

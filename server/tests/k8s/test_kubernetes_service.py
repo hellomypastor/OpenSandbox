@@ -28,7 +28,13 @@ from opensandbox_server.services.constants import (
     SANDBOX_MANUAL_CLEANUP_LABEL,
     SandboxErrorCodes,
 )
-from opensandbox_server.api.schema import ImageAuth, ListSandboxesRequest, NetworkPolicy, PlatformSpec
+from opensandbox_server.api.schema import (
+    CredentialProxyConfig,
+    ImageAuth,
+    ListSandboxesRequest,
+    NetworkPolicy,
+    PlatformSpec,
+)
 from opensandbox_server.config import (
     EGRESS_MODE_DNS,
     EGRESS_MODE_DNS_NFT,
@@ -82,7 +88,23 @@ class TestKubernetesSandboxServiceInit:
             assert exc_info.value.detail["code"] == SandboxErrorCodes.K8S_INITIALIZATION_ERROR
 
 class TestKubernetesSandboxServiceCreate:
-    
+
+    def test_credential_proxy_requires_dns_nft_mode(
+        self, k8s_service, create_sandbox_request
+    ):
+        create_sandbox_request.network_policy = NetworkPolicy(default_action="deny", egress=[])
+        create_sandbox_request.credential_proxy = CredentialProxyConfig(enabled=True)
+        k8s_service.app_config.egress = EgressConfig(
+            image="opensandbox/egress:v1.1.2", mode=EGRESS_MODE_DNS
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            k8s_service._ensure_network_policy_support(create_sandbox_request)
+
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.detail["code"] == SandboxErrorCodes.INVALID_PARAMETER
+        assert "dns+nft" in exc_info.value.detail["message"]
+
     @pytest.mark.asyncio
     async def test_create_sandbox_with_valid_request_succeeds(
         self, k8s_service, create_sandbox_request, mock_workload
