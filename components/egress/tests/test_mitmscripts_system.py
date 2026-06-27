@@ -81,14 +81,22 @@ class _Response:
             }
         )
         self.stream = False
-        self.body = "upstream body includes secret-token"
+        self.body = b"upstream body includes secret-token"
         self.set_text_called = False
+        self.set_content_called = False
 
     def get_text(self, strict: bool = False) -> str:
-        return self.body
+        return self.body.decode("utf-8")
 
     def set_text(self, value: str) -> None:
         self.set_text_called = True
+        self.body = value.encode("utf-8")
+
+    def get_content(self, strict: bool = True) -> bytes:
+        return self.body
+
+    def set_content(self, value: bytes) -> None:
+        self.set_content_called = True
         self.body = value
 
 
@@ -201,17 +209,33 @@ class SystemAddonRedactionTest(unittest.TestCase):
         self.assertEqual("secret-token", flow.request.headers.get("Private-Token"))
         self.assertNotIn("secret-token", "\n".join(system.ctx.log.messages))
 
-    def test_responseheaders_redacts_headers_without_body_hook(self) -> None:
+    def test_response_redacts_headers_and_body(self) -> None:
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
 
         system.responseheaders(flow)
+        system.response(flow)
 
         self.assertEqual("[REDACTED]", flow.response.headers.get("x-token-echo"))
-        self.assertEqual("upstream body includes secret-token", flow.response.body)
+        self.assertEqual(b"upstream body includes [REDACTED]", flow.response.body)
+        self.assertTrue(flow.response.set_content_called)
         self.assertFalse(flow.response.set_text_called)
-        self.assertFalse(hasattr(system, "response"))
+
+    def test_stream_redacts_secret_split_across_chunks(self) -> None:
+        system = _load_system_module()
+        transform = system._redacting_stream(["secret-token"])
+
+        output = b"".join(
+            [
+                transform(b"prefix secret-"),
+                transform(b"token suffix"),
+                transform(b""),
+            ]
+        )
+
+        self.assertEqual(b"prefix [REDACTED] suffix", output)
+        self.assertNotIn(b"secret-token", output)
 
     def test_responseheaders_uses_injected_flow_redactions(self) -> None:
         system = _load_system_module()

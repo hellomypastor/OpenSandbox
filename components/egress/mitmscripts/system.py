@@ -25,7 +25,7 @@
 #      Credential Vault revision. The active revision is stored in the Go
 #      sidecar process and read over an egress-container-private Unix socket.
 #      Credential values are not logged, and response header values containing
-#      credentials are redacted. Response bodies are not rewritten by default.
+#      credentials are redacted from response headers and bodies.
 #   3. Implements SNI-aware ignore_hosts for transparent mode. mitmproxy's
 #      built-in ignore_hosts check in transparent mode matches against the
 #      destination IP first; the SNI hostname is only available inside the TLS
@@ -55,6 +55,7 @@ DEFAULT_CREDENTIAL_PROXY_SOCKET = "/run/opensandbox/credential-proxy/active.sock
 ACTIVE_VAULT_PATH = "/credential-vault/_active"
 VAULT_CACHE_TTL_SECONDS = 0.5
 FLOW_REDACTIONS_KEY = "opensandbox_credential_redactions"
+REDACTED_BYTES = b"[REDACTED]"
 
 
 class ActiveVault:
@@ -275,8 +276,27 @@ def responseheaders(flow: http.HTTPFlow) -> None:
     _redact_response_headers(flow)
     content_type = flow.response.headers.get("content-type", "").lower()
     transfer_encoding = flow.response.headers.get("transfer-encoding", "").lower()
-    if "text/event-stream" in content_type or "chunked" in transfer_encoding:
-        flow.response.stream = True
+    requires_streaming = (
+        "text/event-stream" in content_type
+        or "chunked" in transfer_encoding
+        or bool(flow.response.stream)
+    )
+    if not flow.metadata.get(FLOW_REDACTIONS_KEY):
+        if requires_streaming:
+            flow.response.stream = True
+        return
+
+    content_encoding = flow.response.headers.get("content-encoding", "").lower().strip()
+    if requires_streaming and content_encoding and content_encoding != "identity":
+        flow.response = http.Response.make(
+            502,
+            b"credential proxy cannot inspect compressed streaming response\n",
+            {"content-type": "text/plain"},
+        )
+        return
+
+    if requires_streaming:
+        flow.response.stream = _redacting_stream(flow.metadata[FLOW_REDACTIONS_KEY])
 
 
 def _redact_response_headers(flow: http.HTTPFlow) -> None:
@@ -295,3 +315,76 @@ def _redact_text(text: str, values: list[str]) -> str:
         if value:
             out = out.replace(value, "[REDACTED]")
     return out
+
+
+def response(flow: http.HTTPFlow) -> None:
+    if flow.response is None or flow.response.stream:
+        return
+    redactions = flow.metadata.get(FLOW_REDACTIONS_KEY, [])
+    if not redactions:
+        return
+    try:
+        content = flow.response.get_content(strict=True)
+    except ValueError:
+        flow.response = http.Response.make(
+            502,
+            b"credential proxy could not inspect upstream response\n",
+            {"content-type": "text/plain"},
+        )
+        return
+    redacted = _redact_bytes(content, redactions)
+    if redacted != content:
+        flow.response.set_content(redacted)
+
+
+def _redact_bytes(content: bytes, values: list[str]) -> bytes:
+    out = content
+    for value in values:
+        if value:
+            out = out.replace(value.encode("utf-8"), REDACTED_BYTES)
+    return out
+
+
+def _redacting_stream(values: list[str]):
+    patterns = sorted(
+        {value.encode("utf-8") for value in values if value},
+        key=len,
+        reverse=True,
+    )
+    if not patterns:
+        return lambda chunk: chunk
+
+    pending = b""
+    max_pattern_len = len(patterns[0])
+
+    def transform(chunk: bytes) -> bytes:
+        nonlocal pending
+        pending += chunk
+        if not chunk:
+            out = _redact_bytes(pending, values)
+            pending = b""
+            return out
+
+        safe_limit = max(0, len(pending) - max_pattern_len + 1)
+        cursor = 0
+        out = bytearray()
+        while cursor < safe_limit:
+            match_index = -1
+            match_pattern = b""
+            for pattern in patterns:
+                index = pending.find(pattern, cursor)
+                if index >= 0 and (match_index < 0 or index < match_index):
+                    match_index = index
+                    match_pattern = pattern
+            if match_index < 0 or match_index >= safe_limit:
+                out.extend(pending[cursor:safe_limit])
+                cursor = safe_limit
+                break
+            out.extend(pending[cursor:match_index])
+            out.extend(REDACTED_BYTES)
+            cursor = match_index + len(match_pattern)
+
+        pending = pending[cursor:]
+        return bytes(out)
+
+    return transform

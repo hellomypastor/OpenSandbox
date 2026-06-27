@@ -41,7 +41,8 @@ At a high level:
    inspects the request metadata.
 5. If exactly one binding matches the request scheme, host, port, method, and
    path, the sidecar injects the configured auth header.
-6. Secret values are redacted from vault responses and response headers.
+6. Secret values are redacted from vault responses, response headers, and
+   response bodies, including uncompressed streaming responses.
 
 The active vault used by the MITM process is served over a local Unix domain
 socket inside the sidecar. The sandbox workload cannot fetch this active state
