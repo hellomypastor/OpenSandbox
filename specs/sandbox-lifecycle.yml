@@ -1428,8 +1428,9 @@ components:
       type: object
       description: |
         Credential Vault proxy startup settings. This is an explicit opt-in for
-        transparent MITM support used by credential injection; plain egress
-        network policy remains DNS/FQDN policy enforcement only.
+        transparent MITM support used by credential injection. Credential Vault
+        requires `dns+nft` enforcement and a network policy whose default action
+        is deny.
       properties:
         enabled:
           type: boolean
@@ -1437,7 +1438,8 @@ components:
           description: |
             When true, the server starts the egress sidecar with transparent
             MITM enabled and installs the runtime-managed MITM CA bundle into
-            the sandbox container. Requires `networkPolicy`.
+            the sandbox container. Requires `networkPolicy` with
+            `defaultAction: deny` and server `[egress].mode = "dns+nft"`.
       additionalProperties: false
 
     NetworkRule:

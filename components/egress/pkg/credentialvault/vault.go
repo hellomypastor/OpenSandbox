@@ -377,6 +377,9 @@ func (v *Store) Ready(ctx context.Context) error {
 	if constants.IsTruthy(os.Getenv(constants.EnvMitmproxySslInsecure)) {
 		return fmt.Errorf("credential vault rejects insecure upstream TLS mode")
 	}
+	if !constants.ModeUsesNft(os.Getenv(constants.EnvEgressMode)) {
+		return fmt.Errorf("credential vault requires dns+nft egress enforcement")
+	}
 	if v.mitmGate != nil && !v.mitmGate.WaitReady(ctx) {
 		return fmt.Errorf("credential proxy is not ready")
 	}
@@ -384,6 +387,9 @@ func (v *Store) Ready(ctx context.Context) error {
 }
 
 func (v *Store) validateCandidate(credentials map[string]record, bindings map[string]Binding, pol *policy.NetworkPolicy) error {
+	if len(bindings) > 0 && (pol == nil || pol.DefaultAction != policy.ActionDeny) {
+		return fmt.Errorf("credential vault bindings require an egress policy with defaultAction=deny")
+	}
 	for _, b := range bindings {
 		if err := validateBindingCredentialRefs(b, credentials); err != nil {
 			return err
