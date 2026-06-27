@@ -286,17 +286,35 @@ def responseheaders(flow: http.HTTPFlow) -> None:
             flow.response.stream = True
         return
 
-    content_encoding = flow.response.headers.get("content-encoding", "").lower().strip()
-    if requires_streaming and content_encoding and content_encoding != "identity":
-        flow.response = http.Response.make(
-            502,
-            b"credential proxy cannot inspect compressed streaming response\n",
-            {"content-type": "text/plain"},
-        )
+    if _response_has_no_body(flow):
         return
 
-    if requires_streaming:
-        flow.response.stream = _redacting_stream(flow.metadata[FLOW_REDACTIONS_KEY])
+    content_encoding = flow.response.headers.get("content-encoding", "").lower().strip()
+    compressed = bool(content_encoding and content_encoding != "identity")
+    has_content_length = "content-length" in flow.response.headers
+    if compressed:
+        if requires_streaming or not has_content_length:
+            ctx.log.warn(
+                "credential proxy: terminating uninspectable compressed streaming response"
+            )
+            flow.kill()
+        # Known, non-streaming compressed bodies are decoded by get_content() and
+        # safely rewritten by response().
+        return
+
+    # Install the transformer before mitmproxy can switch an unknown-length body
+    # into streaming mode after stream_large_bodies is crossed. Redaction may
+    # change the byte count, so the original fixed-length framing cannot survive.
+    if has_content_length:
+        del flow.response.headers["content-length"]
+    flow.response.stream = _redacting_stream(flow.metadata[FLOW_REDACTIONS_KEY])
+
+
+def _response_has_no_body(flow: http.HTTPFlow) -> bool:
+    if flow.request.method.upper() == "HEAD":
+        return True
+    status_code = flow.response.status_code
+    return 100 <= status_code < 200 or status_code in (204, 304)
 
 
 def _redact_response_headers(flow: http.HTTPFlow) -> None:
@@ -311,9 +329,8 @@ def _redact_response_headers(flow: http.HTTPFlow) -> None:
 
 def _redact_text(text: str, values: list[str]) -> str:
     out = text
-    for value in values:
-        if value:
-            out = out.replace(value, "[REDACTED]")
+    for value in _ordered_redactions(values):
+        out = out.replace(value, "[REDACTED]")
     return out
 
 
@@ -332,6 +349,8 @@ def response(flow: http.HTTPFlow) -> None:
             {"content-type": "text/plain"},
         )
         return
+    if content is None:
+        return
     redacted = _redact_bytes(content, redactions)
     if redacted != content:
         flow.response.set_content(redacted)
@@ -339,15 +358,18 @@ def response(flow: http.HTTPFlow) -> None:
 
 def _redact_bytes(content: bytes, values: list[str]) -> bytes:
     out = content
-    for value in values:
-        if value:
-            out = out.replace(value.encode("utf-8"), REDACTED_BYTES)
+    for value in _ordered_redactions(values):
+        out = out.replace(value.encode("utf-8"), REDACTED_BYTES)
     return out
+
+
+def _ordered_redactions(values: list[str]) -> list[str]:
+    return sorted({value for value in values if value}, key=len, reverse=True)
 
 
 def _redacting_stream(values: list[str]):
     patterns = sorted(
-        {value.encode("utf-8") for value in values if value},
+        {value.encode("utf-8") for value in _ordered_redactions(values)},
         key=len,
         reverse=True,
     )

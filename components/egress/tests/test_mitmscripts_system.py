@@ -80,6 +80,7 @@ class _Response:
                 "x-token-echo": "secret-token",
             }
         )
+        self.status_code = 200
         self.stream = False
         self.body = b"upstream body includes secret-token"
         self.set_text_called = False
@@ -105,6 +106,10 @@ class _Flow:
         self.request = _Request()
         self.response = _Response()
         self.metadata: dict[str, Any] = {}
+        self.killed = False
+
+    def kill(self) -> None:
+        self.killed = True
 
 
 def _load_system_module() -> Any:
@@ -213,6 +218,8 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.response.headers["content-encoding"] = "gzip"
+        flow.response.headers["content-length"] = "42"
 
         system.responseheaders(flow)
         system.response(flow)
@@ -221,6 +228,87 @@ class SystemAddonRedactionTest(unittest.TestCase):
         self.assertEqual(b"upstream body includes [REDACTED]", flow.response.body)
         self.assertTrue(flow.response.set_content_called)
         self.assertFalse(flow.response.set_text_called)
+
+    def test_responseheaders_streams_unknown_length_body_through_redactor(self) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+
+        system.responseheaders(flow)
+
+        self.assertTrue(callable(flow.response.stream))
+        output = b"".join(
+            [flow.response.stream(b"secret-token"), flow.response.stream(b"")]
+        )
+        self.assertEqual(b"[REDACTED]", output)
+
+    def test_responseheaders_removes_content_length_before_stream_redaction(
+        self,
+    ) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.response.headers["content-length"] = "42"
+
+        system.responseheaders(flow)
+
+        self.assertNotIn("content-length", flow.response.headers)
+        self.assertTrue(callable(flow.response.stream))
+
+    def test_compressed_streaming_response_is_terminated(self) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.response.headers["content-encoding"] = "gzip"
+        flow.response.headers["transfer-encoding"] = "chunked"
+
+        system.responseheaders(flow)
+
+        self.assertTrue(flow.killed)
+
+    def test_unknown_length_compressed_response_is_terminated(self) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.response.headers["content-encoding"] = "gzip"
+
+        system.responseheaders(flow)
+
+        self.assertTrue(flow.killed)
+
+    def test_head_response_is_forwarded_without_body_redaction(self) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.request.method = "HEAD"
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.response.headers["content-length"] = "42"
+
+        system.responseheaders(flow)
+
+        self.assertFalse(flow.killed)
+        self.assertFalse(flow.response.stream)
+        self.assertEqual("42", flow.response.headers.get("content-length"))
+
+    def test_response_ignores_missing_body(self) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.response.get_content = lambda strict=True: None
+
+        system.response(flow)
+
+        self.assertFalse(flow.response.set_content_called)
+
+    def test_redaction_prefers_longer_overlapping_secret(self) -> None:
+        system = _load_system_module()
+
+        redacted = system._redact_bytes(b"token-long", ["token", "token-long"])
+
+        self.assertEqual(b"[REDACTED]", redacted)
+        self.assertEqual(
+            "[REDACTED]",
+            system._redact_text("token-long", ["token", "token-long"]),
+        )
 
     def test_stream_redacts_secret_split_across_chunks(self) -> None:
         system = _load_system_module()
