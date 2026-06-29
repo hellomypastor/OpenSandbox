@@ -24,8 +24,8 @@
 #   2. Acts as Credential Proxy when the egress sidecar has an active
 #      Credential Vault revision. The active revision is stored in the Go
 #      sidecar process and read over an egress-container-private Unix socket.
-#      Credential values are not logged, and response header values containing
-#      credentials are redacted from response headers and bodies.
+#      Credential values are not logged. Response header values containing
+#      credentials are always redacted; response body redaction is opt-in.
 #   3. Implements SNI-aware ignore_hosts for transparent mode. mitmproxy's
 #      built-in ignore_hosts check in transparent mode matches against the
 #      destination IP first; the SNI hostname is only available inside the TLS
@@ -51,9 +51,14 @@ from mitmproxy.tls import ClientHelloData
 
 
 CREDENTIAL_PROXY_SOCKET_ENV = "OPENSANDBOX_CREDENTIAL_PROXY_SOCKET"
+REDACT_RESPONSE_BODY_ENV = (
+    "OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REDACT_RESPONSE_BODY"
+)
 DEFAULT_CREDENTIAL_PROXY_SOCKET = "/run/opensandbox/credential-proxy/active.sock"
 ACTIVE_VAULT_PATH = "/credential-vault/_active"
 VAULT_CACHE_TTL_SECONDS = 0.5
+# Keep aligned with stream_large_bodies in mitmproxy/config.yaml.
+MAX_BUFFERED_REDACTION_BODY_BYTES = 1024 * 1024
 FLOW_REDACTIONS_KEY = "opensandbox_credential_redactions"
 REDACTED_BYTES = b"[REDACTED]"
 
@@ -281,7 +286,8 @@ def responseheaders(flow: http.HTTPFlow) -> None:
         or "chunked" in transfer_encoding
         or bool(flow.response.stream)
     )
-    if not flow.metadata.get(FLOW_REDACTIONS_KEY):
+    redactions = flow.metadata.get(FLOW_REDACTIONS_KEY, [])
+    if not redactions or not _response_body_redaction_enabled():
         if requires_streaming:
             flow.response.stream = True
         return
@@ -293,7 +299,12 @@ def responseheaders(flow: http.HTTPFlow) -> None:
     compressed = bool(content_encoding and content_encoding != "identity")
     has_content_length = "content-length" in flow.response.headers
     if compressed:
-        if requires_streaming or not has_content_length:
+        content_length = _content_length(flow.response)
+        if (
+            requires_streaming
+            or content_length is None
+            or content_length > MAX_BUFFERED_REDACTION_BODY_BYTES
+        ):
             ctx.log.warn(
                 "credential proxy: terminating uninspectable compressed streaming response"
             )
@@ -307,7 +318,7 @@ def responseheaders(flow: http.HTTPFlow) -> None:
     # change the byte count, so the original fixed-length framing cannot survive.
     if has_content_length:
         del flow.response.headers["content-length"]
-    flow.response.stream = _redacting_stream(flow.metadata[FLOW_REDACTIONS_KEY])
+    flow.response.stream = _redacting_stream(redactions)
 
 
 def _response_has_no_body(flow: http.HTTPFlow) -> bool:
@@ -315,6 +326,24 @@ def _response_has_no_body(flow: http.HTTPFlow) -> bool:
         return True
     status_code = flow.response.status_code
     return 100 <= status_code < 200 or status_code in (204, 304)
+
+
+def _response_body_redaction_enabled() -> bool:
+    return os.environ.get(REDACT_RESPONSE_BODY_ENV, "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "y",
+        "on",
+    }
+
+
+def _content_length(response: http.Response) -> int | None:
+    try:
+        value = int(response.headers.get("content-length", ""))
+    except ValueError:
+        return None
+    return value if value >= 0 else None
 
 
 def _redact_response_headers(flow: http.HTTPFlow) -> None:
@@ -335,7 +364,11 @@ def _redact_text(text: str, values: list[str]) -> str:
 
 
 def response(flow: http.HTTPFlow) -> None:
-    if flow.response is None or flow.response.stream:
+    if (
+        flow.response is None
+        or flow.response.stream
+        or not _response_body_redaction_enabled()
+    ):
         return
     redactions = flow.metadata.get(FLOW_REDACTIONS_KEY, [])
     if not redactions:

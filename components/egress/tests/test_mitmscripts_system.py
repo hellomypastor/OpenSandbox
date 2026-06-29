@@ -132,6 +132,18 @@ def _load_system_module() -> Any:
 
 
 class SystemAddonRedactionTest(unittest.TestCase):
+    body_redaction_env = "OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REDACT_RESPONSE_BODY"
+
+    def setUp(self) -> None:
+        self.old_body_redaction = os.environ.get(self.body_redaction_env)
+        os.environ[self.body_redaction_env] = "true"
+
+    def tearDown(self) -> None:
+        if self.old_body_redaction is None:
+            os.environ.pop(self.body_redaction_env, None)
+        else:
+            os.environ[self.body_redaction_env] = self.old_body_redaction
+
     def test_load_active_vault_reads_unix_socket(self) -> None:
         system = _load_system_module()
         calls: list[tuple[str, Any, Any]] = []
@@ -229,6 +241,20 @@ class SystemAddonRedactionTest(unittest.TestCase):
         self.assertTrue(flow.response.set_content_called)
         self.assertFalse(flow.response.set_text_called)
 
+    def test_response_body_redaction_is_disabled_by_default(self) -> None:
+        system = _load_system_module()
+        os.environ.pop(self.body_redaction_env, None)
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+
+        system.responseheaders(flow)
+        system.response(flow)
+
+        self.assertEqual("[REDACTED]", flow.response.headers.get("x-token-echo"))
+        self.assertEqual(b"upstream body includes secret-token", flow.response.body)
+        self.assertFalse(flow.response.set_content_called)
+        self.assertFalse(flow.response.stream)
+
     def test_responseheaders_streams_unknown_length_body_through_redactor(self) -> None:
         system = _load_system_module()
         flow = _Flow()
@@ -261,6 +287,19 @@ class SystemAddonRedactionTest(unittest.TestCase):
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
         flow.response.headers["content-encoding"] = "gzip"
         flow.response.headers["transfer-encoding"] = "chunked"
+
+        system.responseheaders(flow)
+
+        self.assertTrue(flow.killed)
+
+    def test_compressed_response_over_streaming_threshold_is_terminated(self) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.response.headers["content-encoding"] = "gzip"
+        flow.response.headers["content-length"] = str(
+            system.MAX_BUFFERED_REDACTION_BODY_BYTES + 1
+        )
 
         system.responseheaders(flow)
 

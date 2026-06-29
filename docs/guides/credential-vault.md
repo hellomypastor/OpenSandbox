@@ -41,8 +41,9 @@ At a high level:
    inspects the request metadata.
 5. If exactly one binding matches the request scheme, host, port, method, and
    path, the sidecar injects the configured auth header.
-6. Secret values are redacted from vault responses, response headers, and
-   response bodies, including uncompressed streaming responses.
+6. Secret values are always redacted from vault responses and response headers.
+   Response body redaction is available as an explicit opt-in for deployments
+   that accept its streaming and performance tradeoffs.
 
 The active vault used by the MITM process is served over a local Unix domain
 socket inside the sidecar. The sandbox workload cannot fetch this active state
@@ -121,6 +122,7 @@ X-Client-Secret: <client-secret>
 | Environment variable | Default | Description |
 | --- | --- | --- |
 | `OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REQUIRE_TLS` | off | When enabled (`true`/`1`/`on`), credential vault write operations (create, patch, delete) require the request to arrive over TLS, from a loopback address, or with `X-Forwarded-Proto: https`. When disabled (default), any authenticated request is accepted regardless of transport. Enable this in deployments where the egress sidecar is directly reachable from untrusted networks without a TLS-terminating reverse proxy. |
+| `OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REDACT_RESPONSE_BODY` | off | Opt in to scanning credential-bound response bodies and replacing reflected credential values with `[REDACTED]`. This can change response framing and adds processing to downloads and streaming responses. Uninspectable compressed, unknown-length, or large compressed responses fail closed while enabled. Response header redaction remains enabled regardless of this setting. |
 
 
 ## SDK Quick Reference
