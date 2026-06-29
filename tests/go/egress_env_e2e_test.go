@@ -111,7 +111,7 @@ func TestEgressEnv_SSLInsecureWithCredentialProxyReturns400(t *testing.T) {
 			"OPENSANDBOX_EGRESS_MITMPROXY_SSL_INSECURE": "true",
 		},
 		NetworkPolicy: &opensandbox.NetworkPolicy{
-			DefaultAction: "allow",
+			DefaultAction: "deny",
 		},
 		CredentialProxy: &opensandbox.CredentialProxyConfig{Enabled: true},
 	})
