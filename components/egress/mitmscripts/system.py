@@ -57,6 +57,13 @@ VAULT_CACHE_TTL_SECONDS = 0.5
 FLOW_REDACTIONS_KEY = "opensandbox_credential_redactions"
 FLOW_REDACT_RESPONSE_BODY_KEY = "opensandbox_credential_redact_response_body"
 REDACTED_BYTES = b"[REDACTED]"
+BODY_INTEGRITY_HEADERS = (
+    "content-md5",
+    "digest",
+    "content-digest",
+    "repr-digest",
+    "etag",
+)
 
 
 class ActiveVault:
@@ -314,6 +321,9 @@ def responseheaders(flow: http.HTTPFlow) -> None:
     # change the byte count, so the original fixed-length framing cannot survive.
     if has_content_length:
         del flow.response.headers["content-length"]
+    for name in BODY_INTEGRITY_HEADERS:
+        if name in flow.response.headers:
+            del flow.response.headers[name]
     flow.response.stream = _redacting_stream(redactions)
 
 
@@ -379,15 +389,13 @@ def _redact_bytes(content: bytes, values: list[str]) -> bytes:
 
 
 def _ordered_redactions(values: list[str]) -> list[str]:
-    return sorted({value for value in values if value}, key=len, reverse=True)
+    return sorted(
+        {value for value in values if value}, key=lambda value: (-len(value), value)
+    )
 
 
 def _redacting_stream(values: list[str]):
-    patterns = sorted(
-        {value.encode("utf-8") for value in _ordered_redactions(values)},
-        key=len,
-        reverse=True,
-    )
+    patterns = [value.encode("utf-8") for value in _ordered_redactions(values)]
     if not patterns:
         return lambda chunk: chunk
 
@@ -403,25 +411,45 @@ def _redacting_stream(values: list[str]):
             return out
 
         safe_limit = max(0, len(pending) - max_pattern_len + 1)
-        cursor = 0
-        out = bytearray()
-        while cursor < safe_limit:
-            match_index = -1
-            match_pattern = b""
-            for pattern in patterns:
-                index = pending.find(pattern, cursor)
-                if index >= 0 and (match_index < 0 or index < match_index):
-                    match_index = index
-                    match_pattern = pattern
-            if match_index < 0 or match_index >= safe_limit:
-                out.extend(pending[cursor:safe_limit])
-                cursor = safe_limit
-                break
-            out.extend(pending[cursor:match_index])
-            out.extend(REDACTED_BYTES)
-            cursor = match_index + len(match_pattern)
-
-        pending = pending[cursor:]
-        return bytes(out)
+        out, consumed = _redact_stream_prefix(pending, patterns, safe_limit)
+        pending = pending[consumed:]
+        return out
 
     return transform
+
+
+def _redact_stream_prefix(
+    content: bytes,
+    patterns: list[bytes],
+    safe_limit: int,
+) -> tuple[bytes, int]:
+    selected: list[tuple[int, int]] = []
+    for pattern in patterns:
+        start = 0
+        while True:
+            index = content.find(pattern, start)
+            if index < 0:
+                break
+            end = index + len(pattern)
+            if not any(
+                index < selected_end and end > selected_start
+                for selected_start, selected_end in selected
+            ):
+                selected.append((index, end))
+            start = index + 1
+
+    selected.sort()
+    cursor = 0
+    out = bytearray()
+    for start, end in selected:
+        if start >= safe_limit:
+            break
+        if end > safe_limit:
+            out.extend(content[cursor:start])
+            return bytes(out), start
+        out.extend(content[cursor:start])
+        out.extend(REDACTED_BYTES)
+        cursor = end
+
+    out.extend(content[cursor:safe_limit])
+    return bytes(out), safe_limit

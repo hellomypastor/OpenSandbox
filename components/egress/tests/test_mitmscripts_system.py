@@ -298,6 +298,22 @@ class SystemAddonRedactionTest(unittest.TestCase):
         self.assertNotIn("content-length", flow.response.headers)
         self.assertTrue(callable(flow.response.stream))
 
+    def test_responseheaders_removes_integrity_headers_before_stream_redaction(
+        self,
+    ) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
+        for name in system.BODY_INTEGRITY_HEADERS:
+            flow.response.headers[name] = "upstream-value"
+
+        system.responseheaders(flow)
+
+        for name in system.BODY_INTEGRITY_HEADERS:
+            self.assertNotIn(name, flow.response.headers)
+        self.assertTrue(callable(flow.response.stream))
+
     def test_compressed_streaming_response_is_terminated(self) -> None:
         system = _load_system_module()
         flow = _Flow()
@@ -383,6 +399,21 @@ class SystemAddonRedactionTest(unittest.TestCase):
 
         self.assertEqual(b"prefix [REDACTED] suffix", output)
         self.assertNotIn(b"secret-token", output)
+
+    def test_stream_prefers_longer_secret_at_overlapping_offset(self) -> None:
+        system = _load_system_module()
+        transform = system._redacting_stream(["atok", "token-long"])
+
+        output = b"".join(
+            [
+                transform(b"ato"),
+                transform(b"ken-long"),
+                transform(b""),
+            ]
+        )
+
+        self.assertEqual(b"a[REDACTED]", output)
+        self.assertNotIn(b"en-long", output)
 
     def test_responseheaders_uses_injected_flow_redactions(self) -> None:
         system = _load_system_module()
