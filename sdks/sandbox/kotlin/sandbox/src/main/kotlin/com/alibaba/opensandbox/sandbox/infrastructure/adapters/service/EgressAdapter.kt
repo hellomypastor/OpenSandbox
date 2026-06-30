@@ -326,6 +326,7 @@ internal class EgressAdapter(
             put("name", JsonPrimitive(name))
             put("match", match.toJsonObject())
             put("auth", auth.toJsonObject())
+            put("redactResponseBody", JsonPrimitive(redactResponseBody))
         }
 
     private fun CredentialMatch.toJsonObject(): JsonObject =
@@ -419,6 +420,7 @@ internal class EgressAdapter(
             revision = requiredInt("revision"),
             match = optionalObject("match")?.toCredentialMatch(),
             auth = optionalObject("auth")?.toCredentialAuthMetadata(),
+            redactResponseBody = optionalBoolean("redactResponseBody") ?: false,
         )
 
     private fun JsonObject.toCredentialMatch(): CredentialMatch {
@@ -450,6 +452,9 @@ internal class EgressAdapter(
             ?: throw IllegalStateException("Credential Vault response missing required string field: $name")
 
     private fun JsonObject.optionalString(name: String): String? = get(name)?.takeUnless { it is JsonNull }?.jsonPrimitive?.contentOrNull
+
+    private fun JsonObject.optionalBoolean(name: String): Boolean? =
+        get(name)?.takeUnless { it is JsonNull }?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()
 
     private fun JsonObject.requiredInt(name: String): Int =
         get(name)?.jsonPrimitive?.int

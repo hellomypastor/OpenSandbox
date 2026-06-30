@@ -22,6 +22,7 @@ const binding = {
     name: "X-API-Key",
     credential: "api-token",
   },
+  redactResponseBody: true,
 };
 
 const sanitizedCredential = {
@@ -43,6 +44,7 @@ const sanitizedBinding = {
     type: "apiKey",
     name: "X-API-Key",
   },
+  redactResponseBody: true,
 };
 
 function stateResponse() {

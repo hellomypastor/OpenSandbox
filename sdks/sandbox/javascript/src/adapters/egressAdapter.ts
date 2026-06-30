@@ -167,6 +167,12 @@ function sanitizeCredentialBindingMetadata(
   if (match) binding.match = match;
   const auth = sanitizeCredentialAuthMetadata(raw.auth, `${context}.auth`);
   if (auth) binding.auth = auth;
+  if (raw.redactResponseBody != null) {
+    if (typeof raw.redactResponseBody !== "boolean") {
+      throw new Error(`${context}.redactResponseBody: expected boolean`);
+    }
+    binding.redactResponseBody = raw.redactResponseBody;
+  }
   return binding;
 }
 

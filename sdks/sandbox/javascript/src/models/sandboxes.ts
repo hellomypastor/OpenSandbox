@@ -178,6 +178,10 @@ export interface CredentialBinding extends Record<string, unknown> {
    * Auth injection rule for this binding.
    */
   auth: CredentialAuth;
+  /**
+   * Opt in to redacting reflected credential values from response bodies.
+   */
+  redactResponseBody?: boolean;
 }
 
 export interface CredentialMetadata {
@@ -205,6 +209,7 @@ export interface CredentialBindingMetadata {
    * Sanitized auth metadata. Plaintext credential references and values are not returned.
    */
   auth?: CredentialAuthMetadata;
+  redactResponseBody?: boolean;
 }
 
 export interface CredentialVaultState {

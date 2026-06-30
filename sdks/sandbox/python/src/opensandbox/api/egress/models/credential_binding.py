@@ -21,6 +21,8 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from attrs import define as _attrs_define
 
+from ..types import UNSET, Unset
+
 if TYPE_CHECKING:
     from ..models.api_key_credential_auth import ApiKeyCredentialAuth
     from ..models.basic_credential_auth import BasicCredentialAuth
@@ -39,11 +41,16 @@ class CredentialBinding:
         name (str):
         match (CredentialMatch):
         auth (ApiKeyCredentialAuth | BasicCredentialAuth | BearerCredentialAuth | CustomHeadersCredentialAuth):
+        redact_response_body (bool | Unset): Opt in to response-body credential redaction for requests matched by this
+            binding. Response headers are always redacted. Body inspection can affect
+            streaming, compression, response framing, latency, and memory use. Defaults
+            to false when omitted.
     """
 
     name: str
     match: CredentialMatch
     auth: ApiKeyCredentialAuth | BasicCredentialAuth | BearerCredentialAuth | CustomHeadersCredentialAuth
+    redact_response_body: bool | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         from ..models.api_key_credential_auth import ApiKeyCredentialAuth
@@ -64,6 +71,8 @@ class CredentialBinding:
         else:
             auth = self.auth.to_dict()
 
+        redact_response_body = self.redact_response_body
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -73,6 +82,8 @@ class CredentialBinding:
                 "auth": auth,
             }
         )
+        if redact_response_body is not UNSET:
+            field_dict["redactResponseBody"] = redact_response_body
 
         return field_dict
 
@@ -124,10 +135,13 @@ class CredentialBinding:
 
         auth = _parse_auth(d.pop("auth"))
 
+        redact_response_body = d.pop("redactResponseBody", UNSET)
+
         credential_binding = cls(
             name=name,
             match=match,
             auth=auth,
+            redact_response_body=redact_response_body,
         )
 
         return credential_binding

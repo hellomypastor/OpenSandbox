@@ -1,11 +1,11 @@
 // Copyright 2026 Alibaba Group Holding Ltd..
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -498,6 +498,8 @@ export interface components {
             revision: number;
             match?: components["schemas"]["CredentialMatch"];
             auth?: components["schemas"]["CredentialAuthMetadata"];
+            /** @description Whether response bodies are inspected for reflected credential values. Defaults to false when omitted. */
+            redactResponseBody?: boolean;
         };
         Credential: {
             name: string;
@@ -512,6 +514,13 @@ export interface components {
             name: string;
             match: components["schemas"]["CredentialMatch"];
             auth: components["schemas"]["CredentialAuth"];
+            /**
+             * @description Opt in to response-body credential redaction for requests matched by this
+             *     binding. Response headers are always redacted. Body inspection can affect
+             *     streaming, compression, response framing, latency, and memory use. Defaults
+             *     to false when omitted.
+             */
+            redactResponseBody?: boolean;
         };
         CredentialMatch: {
             /**

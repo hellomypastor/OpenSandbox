@@ -42,8 +42,8 @@ At a high level:
 5. If exactly one binding matches the request scheme, host, port, method, and
    path, the sidecar injects the configured auth header.
 6. Secret values are always redacted from vault responses and response headers.
-   Response body redaction is available as an explicit opt-in for deployments
-   that accept its streaming and performance tradeoffs.
+   A binding can set `redactResponseBody: true` to also redact reflected values
+   from response bodies for requests matched by that binding.
 
 The active vault used by the MITM process is served over a local Unix domain
 socket inside the sidecar. The sandbox workload cannot fetch this active state
@@ -121,8 +121,8 @@ X-Client-Secret: <client-secret>
 
 | Environment variable | Default | Description |
 | --- | --- | --- |
-| `OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REQUIRE_TLS` | off | When enabled (`true`/`1`/`on`), credential vault write operations (create, patch, delete) require the request to arrive over TLS, from a loopback address, or with `X-Forwarded-Proto: https`. When disabled (default), any authenticated request is accepted regardless of transport. Enable this in deployments where the egress sidecar is directly reachable from untrusted networks without a TLS-terminating reverse proxy. |
-| `OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REDACT_RESPONSE_BODY` | off | Opt in to scanning credential-bound response bodies and replacing reflected credential values with `[REDACTED]`. This can change response framing and adds processing to downloads and streaming responses. Uninspectable compressed, unknown-length, or large compressed responses fail closed while enabled. Response header redaction remains enabled regardless of this setting. |
+| `OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REQUIRE_TLS` | off | When enabled (`true`/`1`/`on`), credential vault write operations (create, patch, delete) require TLS, loopback transport, or `X-Forwarded-Proto: https` from a configured trusted proxy. When disabled (default), any authenticated request is accepted regardless of transport. Enable this in deployments where the egress sidecar is directly reachable from untrusted networks without a TLS-terminating reverse proxy. |
+| `OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_TRUSTED_PROXY_CIDRS` | empty | Comma-separated IP addresses or CIDRs allowed to assert `X-Forwarded-Proto: https`. Forwarded transport headers from all other peers are ignored. Configure this when TLS terminates at a reverse proxy before the egress sidecar. |
 
 
 ## SDK Quick Reference
@@ -290,8 +290,17 @@ CredentialBinding(
         "paths": ["/v1/projects/123/variables"],
     },
     auth={"type": "apiKey", "name": "PRIVATE-TOKEN", "credential": "api-token"},
+    redact_response_body=True,
 )
 ```
+
+Response-body redaction is disabled when the binding option is omitted. Enable
+it only for endpoints where credential reflection is a realistic risk. Body
+inspection can change response framing and adds processing to downloads and
+streaming responses. When enabled, compressed streaming, unknown-length
+compressed, and compressed responses larger than the 1 MiB buffering threshold
+fail closed because they cannot be inspected safely. Response header redaction
+remains enabled for every credential-bound request.
 
 The sandbox command stays secret-free:
 
@@ -304,6 +313,8 @@ curl -fsS https://api.example.com/v1/projects/123/variables
 - Use `defaultAction="deny"` and only allow the service hosts required by the
   tool.
 - Scope bindings by path whenever possible, for example `/v1/*`.
+- Enable `redactResponseBody` only on bindings whose upstream responses may
+  reflect credentials; leave it disabled for large downloads and LLM streams.
 - Avoid overlapping bindings at the same precedence; ambiguous matches are
   rejected.
 - Do not put real secrets in sandbox `env`, command arguments, files, or

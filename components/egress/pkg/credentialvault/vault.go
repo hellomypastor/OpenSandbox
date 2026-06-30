@@ -114,9 +114,10 @@ type InlineCredentialSource struct {
 }
 
 type Binding struct {
-	Name  string `json:"name"`
-	Match Match  `json:"match"`
-	Auth  Auth   `json:"auth"`
+	Name               string `json:"name"`
+	Match              Match  `json:"match"`
+	Auth               Auth   `json:"auth"`
+	RedactResponseBody bool   `json:"redactResponseBody,omitempty"`
 }
 
 type Match struct {
@@ -162,10 +163,11 @@ type Metadata struct {
 }
 
 type BindingMetadata struct {
-	Name     string       `json:"name"`
-	Revision int64        `json:"revision"`
-	Match    Match        `json:"match"`
-	Auth     AuthMetadata `json:"auth"`
+	Name               string       `json:"name"`
+	Revision           int64        `json:"revision"`
+	Match              Match        `json:"match"`
+	Auth               AuthMetadata `json:"auth"`
+	RedactResponseBody bool         `json:"redactResponseBody,omitempty"`
 }
 
 type AuthMetadata struct {
@@ -180,9 +182,10 @@ type ActiveSnapshot struct {
 }
 
 type ActiveBinding struct {
-	Name    string            `json:"name"`
-	Match   Match             `json:"match"`
-	Headers []InjectionHeader `json:"headers"`
+	Name               string            `json:"name"`
+	Match              Match             `json:"match"`
+	Headers            []InjectionHeader `json:"headers"`
+	RedactResponseBody bool              `json:"redactResponseBody,omitempty"`
 }
 
 type InjectionHeader struct {
@@ -307,10 +310,11 @@ func (v *Store) sanitizedLocked() State {
 	}
 	for _, b := range v.bindings {
 		state.Bindings = append(state.Bindings, BindingMetadata{
-			Name:     b.Name,
-			Revision: v.revision,
-			Match:    b.Match,
-			Auth:     sanitizeAuth(b.Auth),
+			Name:               b.Name,
+			Revision:           v.revision,
+			Match:              b.Match,
+			Auth:               sanitizeAuth(b.Auth),
+			RedactResponseBody: b.RedactResponseBody,
 		})
 	}
 	sort.Slice(state.Credentials, func(i, j int) bool { return state.Credentials[i].Name < state.Credentials[j].Name })
@@ -341,9 +345,10 @@ func (v *Store) ActiveSnapshot() (ActiveSnapshot, error) {
 			return ActiveSnapshot{}, err
 		}
 		snapshot.Bindings = append(snapshot.Bindings, ActiveBinding{
-			Name:    b.Name,
-			Match:   b.Match,
-			Headers: headers,
+			Name:               b.Name,
+			Match:              b.Match,
+			Headers:            headers,
+			RedactResponseBody: b.RedactResponseBody,
 		})
 		for _, value := range values {
 			if value != "" {

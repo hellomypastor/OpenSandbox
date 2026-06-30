@@ -60,18 +60,22 @@ func testCredentialVaultRequest() CreateRequest {
 func TestCredentialVaultCreateSanitizesAndRendersActiveSnapshot(t *testing.T) {
 	store := NewStore(nil, func() bool { return true })
 	pol := testCredentialPolicy(t, `{"defaultAction":"deny","egress":[{"action":"allow","target":"code.example.com"}]}`)
+	req := testCredentialVaultRequest()
+	req.Bindings[0].RedactResponseBody = true
 
-	state, err := store.Create(testCredentialVaultRequest(), pol)
+	state, err := store.Create(req, pol)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), state.Revision)
 	require.Equal(t, []Metadata{{Name: "gitlab-token", SourceType: "inline", Revision: 1}}, state.Credentials)
 	require.Equal(t, "apiKey", state.Bindings[0].Auth.Type)
 	require.Equal(t, "Private-Token", state.Bindings[0].Auth.Name)
+	require.True(t, state.Bindings[0].RedactResponseBody)
 
 	payload, err := store.ActiveSnapshot()
 	require.NoError(t, err)
 	require.Equal(t, int64(1), payload.Revision)
 	require.Equal(t, []InjectionHeader{{Name: "Private-Token", Value: "secret-token"}}, payload.Bindings[0].Headers)
+	require.True(t, payload.Bindings[0].RedactResponseBody)
 	require.Contains(t, payload.Redactions, "secret-token")
 }
 

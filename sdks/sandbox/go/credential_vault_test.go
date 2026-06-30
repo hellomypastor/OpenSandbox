@@ -57,6 +57,7 @@ func TestCreateCredentialVaultPayloadAndHeaders(t *testing.T) {
 						"name":       "X-Api-Key",
 						"credential": "api-token",
 					},
+					"redactResponseBody": true,
 				},
 			},
 		}, body)
@@ -68,10 +69,11 @@ func TestCreateCredentialVaultPayloadAndHeaders(t *testing.T) {
 			},
 			Bindings: []CredentialBindingMetadata{
 				{
-					Name:     "api-binding",
-					Revision: 1,
-					Match:    &CredentialMatch{Hosts: []string{"api.example.com"}},
-					Auth:     &CredentialAuthMetadata{Type: "apiKey", Name: "X-Api-Key"},
+					Name:               "api-binding",
+					Revision:           1,
+					Match:              &CredentialMatch{Hosts: []string{"api.example.com"}},
+					Auth:               &CredentialAuthMetadata{Type: "apiKey", Name: "X-Api-Key"},
+					RedactResponseBody: true,
 				},
 			},
 		})
@@ -85,6 +87,7 @@ func TestCreateCredentialVaultPayloadAndHeaders(t *testing.T) {
 	require.Len(t, got.Bindings, 1)
 	require.NotNil(t, got.Bindings[0].Auth)
 	require.Equal(t, "apiKey", got.Bindings[0].Auth.Type)
+	require.True(t, got.Bindings[0].RedactResponseBody)
 }
 
 func TestInlineCredentialSourceDefaultsTypeWhenMarshaled(t *testing.T) {
@@ -412,6 +415,7 @@ func sampleCredentialVaultCreateRequest() CredentialVaultCreateRequest {
 					Name:       "X-Api-Key",
 					Credential: "api-token",
 				},
+				RedactResponseBody: true,
 			},
 		},
 	}

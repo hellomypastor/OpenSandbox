@@ -241,6 +241,9 @@ class CredentialBinding(BaseModel):
     name: str
     match: CredentialMatch | dict[str, object]
     auth: CredentialAuth | dict[str, object]
+    redact_response_body: bool = Field(default=False, alias="redactResponseBody")
+
+    model_config = ConfigDict(populate_by_name=True)
 
     @field_validator("name")
     @classmethod
@@ -282,6 +285,9 @@ class CredentialBindingMetadata(BaseModel):
     revision: int
     match: CredentialMatch | None = None
     auth: CredentialAuthMetadata | None = None
+    redact_response_body: bool = Field(default=False, alias="redactResponseBody")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class CredentialVaultState(BaseModel):

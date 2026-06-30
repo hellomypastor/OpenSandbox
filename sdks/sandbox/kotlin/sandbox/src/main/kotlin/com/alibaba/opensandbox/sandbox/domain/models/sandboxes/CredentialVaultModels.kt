@@ -343,6 +343,7 @@ class CredentialBinding private constructor(
     val name: String,
     val match: CredentialMatch,
     val auth: CredentialAuth,
+    val redactResponseBody: Boolean,
 ) {
     companion object {
         @JvmStatic
@@ -353,6 +354,7 @@ class CredentialBinding private constructor(
         private var name: String? = null
         private var match: CredentialMatch? = null
         private var auth: CredentialAuth? = null
+        private var redactResponseBody: Boolean = false
 
         fun name(name: String): Builder {
             require(name.isNotBlank()) { "Credential binding name cannot be blank" }
@@ -370,11 +372,21 @@ class CredentialBinding private constructor(
             return this
         }
 
+        fun redactResponseBody(redactResponseBody: Boolean): Builder {
+            this.redactResponseBody = redactResponseBody
+            return this
+        }
+
         fun build(): CredentialBinding {
             val nameValue = name ?: throw IllegalArgumentException("Credential binding name must be specified")
             val matchValue = match ?: throw IllegalArgumentException("Credential binding match must be specified")
             val authValue = auth ?: throw IllegalArgumentException("Credential binding auth must be specified")
-            return CredentialBinding(name = nameValue, match = matchValue, auth = authValue)
+            return CredentialBinding(
+                name = nameValue,
+                match = matchValue,
+                auth = authValue,
+                redactResponseBody = redactResponseBody,
+            )
         }
     }
 }
@@ -556,6 +568,7 @@ class CredentialBindingMetadata(
     val revision: Int,
     val match: CredentialMatch?,
     val auth: CredentialAuthMetadata?,
+    val redactResponseBody: Boolean = false,
 )
 
 /**

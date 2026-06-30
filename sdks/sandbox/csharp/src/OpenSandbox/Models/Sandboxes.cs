@@ -285,6 +285,12 @@ public class CredentialBinding
     /// </summary>
     [JsonPropertyName("auth")]
     public required CredentialAuth Auth { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether reflected credential values are redacted from response bodies.
+    /// </summary>
+    [JsonPropertyName("redactResponseBody")]
+    public bool RedactResponseBody { get; set; }
 }
 
 /// <summary>
@@ -357,6 +363,12 @@ public class CredentialBindingMetadata
     /// </summary>
     [JsonPropertyName("auth")]
     public CredentialAuthMetadata? Auth { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether response-body credential redaction is enabled for the binding.
+    /// </summary>
+    [JsonPropertyName("redactResponseBody")]
+    public bool RedactResponseBody { get; set; }
 }
 
 /// <summary>

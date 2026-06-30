@@ -39,12 +39,15 @@ class CredentialBindingMetadata:
         revision (int):
         match (CredentialMatch | Unset):
         auth (CredentialAuthMetadata | Unset):
+        redact_response_body (bool | Unset): Whether response bodies are inspected for reflected credential values.
+            Defaults to false when omitted.
     """
 
     name: str
     revision: int
     match: CredentialMatch | Unset = UNSET
     auth: CredentialAuthMetadata | Unset = UNSET
+    redact_response_body: bool | Unset = UNSET
 
     def to_dict(self) -> dict[str, Any]:
         name = self.name
@@ -59,6 +62,8 @@ class CredentialBindingMetadata:
         if not isinstance(self.auth, Unset):
             auth = self.auth.to_dict()
 
+        redact_response_body = self.redact_response_body
+
         field_dict: dict[str, Any] = {}
 
         field_dict.update(
@@ -71,6 +76,8 @@ class CredentialBindingMetadata:
             field_dict["match"] = match
         if auth is not UNSET:
             field_dict["auth"] = auth
+        if redact_response_body is not UNSET:
+            field_dict["redactResponseBody"] = redact_response_body
 
         return field_dict
 
@@ -98,11 +105,14 @@ class CredentialBindingMetadata:
         else:
             auth = CredentialAuthMetadata.from_dict(_auth)
 
+        redact_response_body = d.pop("redactResponseBody", UNSET)
+
         credential_binding_metadata = cls(
             name=name,
             revision=revision,
             match=match,
             auth=auth,
+            redact_response_body=redact_response_body,
         )
 
         return credential_binding_metadata

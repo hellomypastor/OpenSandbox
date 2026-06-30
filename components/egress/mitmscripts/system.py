@@ -35,7 +35,7 @@
 #      found, ensuring domain-based TLS pass-through works reliably.
 #
 # User-defined addons can be loaded alongside this script via
-# OPENSANDBOX_EGRESS_MITMPROXY_SCRIPT.
+# OPENSANDBOX_EGRESS_MITMPROXY_SCRIPT (comma-separated for multiple scripts).
 from __future__ import annotations
 
 import http.client as http_client
@@ -51,15 +51,13 @@ from mitmproxy.tls import ClientHelloData
 
 
 CREDENTIAL_PROXY_SOCKET_ENV = "OPENSANDBOX_CREDENTIAL_PROXY_SOCKET"
-REDACT_RESPONSE_BODY_ENV = (
-    "OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REDACT_RESPONSE_BODY"
-)
 DEFAULT_CREDENTIAL_PROXY_SOCKET = "/run/opensandbox/credential-proxy/active.sock"
 ACTIVE_VAULT_PATH = "/credential-vault/_active"
 VAULT_CACHE_TTL_SECONDS = 0.5
 # Keep aligned with stream_large_bodies in mitmproxy/config.yaml.
 MAX_BUFFERED_REDACTION_BODY_BYTES = 1024 * 1024
 FLOW_REDACTIONS_KEY = "opensandbox_credential_redactions"
+FLOW_REDACT_RESPONSE_BODY_KEY = "opensandbox_credential_redact_response_body"
 REDACTED_BYTES = b"[REDACTED]"
 
 
@@ -267,6 +265,9 @@ def request(flow: http.HTTPFlow) -> None:
 
     if injected_names:
         flow.metadata[FLOW_REDACTIONS_KEY] = list(vault.redactions)
+        flow.metadata[FLOW_REDACT_RESPONSE_BODY_KEY] = bool(
+            binding.get("redactResponseBody", False)
+        )
         ctx.log.info(
             "credential proxy: injected binding="
             f"{binding.get('name')} revision={vault.revision} "
@@ -287,7 +288,7 @@ def responseheaders(flow: http.HTTPFlow) -> None:
         or bool(flow.response.stream)
     )
     redactions = flow.metadata.get(FLOW_REDACTIONS_KEY, [])
-    if not redactions or not _response_body_redaction_enabled():
+    if not redactions or not _response_body_redaction_enabled(flow):
         if requires_streaming:
             flow.response.stream = True
         return
@@ -328,14 +329,8 @@ def _response_has_no_body(flow: http.HTTPFlow) -> bool:
     return 100 <= status_code < 200 or status_code in (204, 304)
 
 
-def _response_body_redaction_enabled() -> bool:
-    return os.environ.get(REDACT_RESPONSE_BODY_ENV, "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "y",
-        "on",
-    }
+def _response_body_redaction_enabled(flow: http.HTTPFlow) -> bool:
+    return bool(flow.metadata.get(FLOW_REDACT_RESPONSE_BODY_KEY, False))
 
 
 def _content_length(response: http.Response) -> int | None:
@@ -367,7 +362,7 @@ def response(flow: http.HTTPFlow) -> None:
     if (
         flow.response is None
         or flow.response.stream
-        or not _response_body_redaction_enabled()
+        or not _response_body_redaction_enabled(flow)
     ):
         return
     redactions = flow.metadata.get(FLOW_REDACTIONS_KEY, [])

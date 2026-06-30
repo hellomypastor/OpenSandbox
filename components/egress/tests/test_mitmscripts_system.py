@@ -132,18 +132,6 @@ def _load_system_module() -> Any:
 
 
 class SystemAddonRedactionTest(unittest.TestCase):
-    body_redaction_env = "OPENSANDBOX_EGRESS_CREDENTIAL_VAULT_REDACT_RESPONSE_BODY"
-
-    def setUp(self) -> None:
-        self.old_body_redaction = os.environ.get(self.body_redaction_env)
-        os.environ[self.body_redaction_env] = "true"
-
-    def tearDown(self) -> None:
-        if self.old_body_redaction is None:
-            os.environ.pop(self.body_redaction_env, None)
-        else:
-            os.environ[self.body_redaction_env] = self.old_body_redaction
-
     def test_load_active_vault_reads_unix_socket(self) -> None:
         system = _load_system_module()
         calls: list[tuple[str, Any, Any]] = []
@@ -216,6 +204,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
                         "paths": ["/api/v8/*"],
                     },
                     "headers": [{"name": "Private-Token", "value": "secret-token"}],
+                    "redactResponseBody": True,
                 }
             ],
             ["secret-token"],
@@ -224,12 +213,38 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system.request(flow)
 
         self.assertEqual("secret-token", flow.request.headers.get("Private-Token"))
+        self.assertTrue(flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY])
         self.assertNotIn("secret-token", "\n".join(system.ctx.log.messages))
+
+    def test_binding_defaults_to_header_only_redaction(self) -> None:
+        system = _load_system_module()
+        flow = _Flow()
+        system._load_active_vault = lambda: system.ActiveVault(
+            1,
+            [
+                {
+                    "name": "gitlab-api",
+                    "match": {"hosts": ["code.example.com"]},
+                    "headers": [{"name": "Private-Token", "value": "secret-token"}],
+                }
+            ],
+            ["secret-token"],
+        )
+
+        system.request(flow)
+        system.responseheaders(flow)
+        system.response(flow)
+
+        self.assertFalse(flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY])
+        self.assertEqual("[REDACTED]", flow.response.headers.get("x-token-echo"))
+        self.assertEqual(b"upstream body includes secret-token", flow.response.body)
+        self.assertFalse(flow.response.set_content_called)
 
     def test_response_redacts_headers_and_body(self) -> None:
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.headers["content-encoding"] = "gzip"
         flow.response.headers["content-length"] = "42"
 
@@ -243,7 +258,6 @@ class SystemAddonRedactionTest(unittest.TestCase):
 
     def test_response_body_redaction_is_disabled_by_default(self) -> None:
         system = _load_system_module()
-        os.environ.pop(self.body_redaction_env, None)
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
 
@@ -259,6 +273,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
 
         system.responseheaders(flow)
 
@@ -274,6 +289,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.headers["content-length"] = "42"
 
         system.responseheaders(flow)
@@ -285,6 +301,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.headers["content-encoding"] = "gzip"
         flow.response.headers["transfer-encoding"] = "chunked"
 
@@ -296,6 +313,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.headers["content-encoding"] = "gzip"
         flow.response.headers["content-length"] = str(
             system.MAX_BUFFERED_REDACTION_BODY_BYTES + 1
@@ -309,6 +327,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.headers["content-encoding"] = "gzip"
 
         system.responseheaders(flow)
@@ -320,6 +339,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         flow = _Flow()
         flow.request.method = "HEAD"
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.headers["content-length"] = "42"
 
         system.responseheaders(flow)
@@ -332,6 +352,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
+        flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.get_content = lambda strict=True: None
 
         system.response(flow)

@@ -512,6 +512,9 @@ components:
           $ref: '#/components/schemas/CredentialMatch'
         auth:
           $ref: '#/components/schemas/CredentialAuthMetadata'
+        redactResponseBody:
+          type: boolean
+          description: Whether response bodies are inspected for reflected credential values. Defaults to false when omitted.
       additionalProperties: false
     Credential:
       type: object
@@ -543,6 +546,13 @@ components:
           $ref: '#/components/schemas/CredentialMatch'
         auth:
           $ref: '#/components/schemas/CredentialAuth'
+        redactResponseBody:
+          type: boolean
+          description: |
+            Opt in to response-body credential redaction for requests matched by this
+            binding. Response headers are always redacted. Body inspection can affect
+            streaming, compression, response framing, latency, and memory use. Defaults
+            to false when omitted.
       additionalProperties: false
     CredentialMatch:
       type: object

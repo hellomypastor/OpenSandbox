@@ -343,9 +343,10 @@ type CredentialAuth struct {
 // CredentialBinding is a sandbox-local Credential Vault binding create/update
 // model.
 type CredentialBinding struct {
-	Name  string          `json:"name"`
-	Match CredentialMatch `json:"match"`
-	Auth  CredentialAuth  `json:"auth"`
+	Name               string          `json:"name"`
+	Match              CredentialMatch `json:"match"`
+	Auth               CredentialAuth  `json:"auth"`
+	RedactResponseBody bool            `json:"redactResponseBody,omitempty"`
 }
 
 // CredentialVaultCreateRequest creates the initial sandbox-local Credential
@@ -397,10 +398,11 @@ type CredentialAuthMetadata struct {
 // CredentialBindingMetadata is sanitized binding metadata returned by
 // Credential Vault.
 type CredentialBindingMetadata struct {
-	Name     string                  `json:"name"`
-	Revision int                     `json:"revision"`
-	Match    *CredentialMatch        `json:"match,omitempty"`
-	Auth     *CredentialAuthMetadata `json:"auth,omitempty"`
+	Name               string                  `json:"name"`
+	Revision           int                     `json:"revision"`
+	Match              *CredentialMatch        `json:"match,omitempty"`
+	Auth               *CredentialAuthMetadata `json:"auth,omitempty"`
+	RedactResponseBody bool                    `json:"redactResponseBody,omitempty"`
 }
 
 // CredentialVaultState is sanitized Credential Vault state.
