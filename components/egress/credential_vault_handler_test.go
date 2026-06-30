@@ -234,6 +234,7 @@ func TestCredentialVaultWriteRequiresTLSOrLoopback(t *testing.T) {
 
 func TestCredentialVaultWriteAllowsForwardedProto(t *testing.T) {
 	t.Setenv(constants.EnvMitmproxyTransparent, "true")
+	t.Setenv(constants.EnvCredentialVaultTrustedProxyCIDRs, "198.51.100.0/24")
 	initial := testCredentialVaultPolicy(t, `{"defaultAction":"deny","egress":[{"action":"allow","target":"code.example.com"}]}`)
 	srv := &policyServer{
 		proxy:                     &stubProxy{updated: initial},
@@ -248,6 +249,25 @@ func TestCredentialVaultWriteAllowsForwardedProto(t *testing.T) {
 	srv.handleCredentialVault(w, req)
 
 	require.Equal(t, http.StatusCreated, w.Result().StatusCode)
+}
+
+func TestCredentialVaultWriteRejectsForwardedProtoFromUntrustedPeer(t *testing.T) {
+	t.Setenv(constants.EnvMitmproxyTransparent, "true")
+	t.Setenv(constants.EnvCredentialVaultTrustedProxyCIDRs, "203.0.113.0/24")
+	initial := testCredentialVaultPolicy(t, `{"defaultAction":"deny","egress":[{"action":"allow","target":"code.example.com"}]}`)
+	srv := &policyServer{
+		proxy:                     &stubProxy{updated: initial},
+		credentialVault:           credentialvault.NewStore(nil, func() bool { return true }),
+		credentialVaultRequireTLS: true,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/credential-vault", strings.NewReader(`{"credentials":[],"bindings":[]}`))
+	req.RemoteAddr = "198.51.100.10:1234"
+	req.Header.Set("X-Forwarded-Proto", "https")
+	w := httptest.NewRecorder()
+	srv.handleCredentialVault(w, req)
+
+	require.Equal(t, http.StatusUpgradeRequired, w.Result().StatusCode)
 }
 
 func TestCredentialVaultWriteSkipsTLSCheckByDefault(t *testing.T) {
