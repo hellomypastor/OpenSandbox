@@ -29,6 +29,7 @@ import (
 	"sync"
 
 	"github.com/alibaba/opensandbox/egress/pkg/constants"
+	"github.com/alibaba/opensandbox/egress/pkg/log"
 	"github.com/alibaba/opensandbox/egress/pkg/mitmproxy"
 	"github.com/alibaba/opensandbox/egress/pkg/policy"
 )
@@ -387,8 +388,11 @@ func (v *Store) Ready(ctx context.Context) error {
 }
 
 func (v *Store) validateCandidate(credentials map[string]record, bindings map[string]Binding, pol *policy.NetworkPolicy) error {
-	if len(bindings) > 0 && (pol == nil || pol.DefaultAction != policy.ActionDeny) {
-		return fmt.Errorf("credential vault bindings require an egress policy with defaultAction=deny")
+	if len(bindings) > 0 && pol == nil {
+		return fmt.Errorf("credential vault bindings require an egress policy")
+	}
+	if len(bindings) > 0 && pol.DefaultAction != policy.ActionDeny {
+		log.Warnf("credential vault: default-allow egress policy is deprecated and may allow credential destination bypass; use defaultAction=deny")
 	}
 	for _, b := range bindings {
 		if err := validateBindingCredentialRefs(b, credentials); err != nil {

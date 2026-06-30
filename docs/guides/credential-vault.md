@@ -20,12 +20,21 @@ Credential Vault is OpenSandbox's outbound credential broker for sandboxed agent
 - Server config sets `[egress].mode = "dns+nft"`. Credential Vault refuses to
   activate in DNS-only mode because direct-IP connections can bypass DNS policy.
 - Sandbox create request includes an outbound network policy.
-- The outbound network policy uses `defaultAction="deny"` and explicitly allows
-  every host referenced by a credential binding.
+- The outbound network policy should use `defaultAction="deny"` and explicitly
+  allow every host referenced by a credential binding. Default-allow remains
+  temporarily supported for backward compatibility but emits a security warning.
 - Sandbox create request enables Credential Proxy.
 - Sandbox pods are not running with an additional transparent service-mesh sidecar (for example Istio/Envoy injection) in the same network namespace. Credential Vault currently assumes the OpenSandbox egress sidecar is the only transparent outbound interception layer in the pod.
 - The sandbox image has the tools you want to run. For Claude Code, use an image
   with Node.js and npm, such as the OpenSandbox code-interpreter image.
+
+::: warning Migration notice
+Credential Proxy still requires server `[egress].mode = "dns+nft"`; deployments
+that cannot provide nft enforcement cannot safely enable credential injection.
+Default-allow policies remain accepted during the compatibility period, but emit
+a security warning and should migrate to `defaultAction="deny"` before enforcement
+is tightened in a future release.
+:::
 
 ## How It Works
 
@@ -303,7 +312,8 @@ curl -fsS https://api.example.com/v1/projects/123/variables
 ## Binding Guidance
 
 - Use `defaultAction="deny"` and only allow the service hosts required by the
-  tool. Credential Vault rejects default-allow policies.
+  tool. Default-allow policies are deprecated because they may allow credential
+  destination bypass and will emit a security warning.
 - Scope bindings by path whenever possible, for example `/v1/*`.
 - Avoid overlapping bindings at the same precedence; ambiguous matches are
   rejected.

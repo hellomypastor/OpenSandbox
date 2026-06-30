@@ -640,21 +640,42 @@ class TestEnsureVolumesValid:
 
 class TestCredentialProxyConfiguration:
     def test_allows_dns_nft_mode(self):
-        from opensandbox_server.api.schema import CredentialProxyConfig
+        from opensandbox_server.api.schema import CredentialProxyConfig, NetworkPolicy
         from opensandbox_server.config import EgressConfig
 
         ensure_credential_proxy_configured(
             CredentialProxyConfig(enabled=True),
+            NetworkPolicy(default_action="deny", egress=[]),
             EgressConfig(image="egress:latest", mode="dns+nft"),
         )
 
+    def test_warns_for_default_allow_policy(self, monkeypatch):
+        from opensandbox_server.api.schema import CredentialProxyConfig, NetworkPolicy
+        from opensandbox_server.config import EgressConfig
+
+        warnings = []
+        monkeypatch.setattr(
+            "opensandbox_server.services.validators.logger.warning",
+            lambda message, *args: warnings.append(message % args),
+        )
+
+        ensure_credential_proxy_configured(
+            CredentialProxyConfig(enabled=True),
+            NetworkPolicy(default_action="allow", egress=[]),
+            EgressConfig(image="egress:latest", mode="dns+nft"),
+        )
+
+        assert len(warnings) == 1
+        assert "allowed for backward compatibility but is deprecated" in warnings[0]
+
     def test_rejects_dns_only_mode(self):
-        from opensandbox_server.api.schema import CredentialProxyConfig
+        from opensandbox_server.api.schema import CredentialProxyConfig, NetworkPolicy
         from opensandbox_server.config import EgressConfig
 
         with pytest.raises(HTTPException) as exc_info:
             ensure_credential_proxy_configured(
                 CredentialProxyConfig(enabled=True),
+                NetworkPolicy(default_action="deny", egress=[]),
                 EgressConfig(image="egress:latest", mode="dns"),
             )
 
@@ -665,7 +686,9 @@ class TestCredentialProxyConfiguration:
     def test_ignores_disabled_proxy(self):
         from opensandbox_server.api.schema import CredentialProxyConfig
 
-        ensure_credential_proxy_configured(CredentialProxyConfig(enabled=False), None)
+        ensure_credential_proxy_configured(
+            CredentialProxyConfig(enabled=False), None, None
+        )
 
 
 class TestEgressRuntimeCompatibility:

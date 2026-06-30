@@ -450,21 +450,18 @@ class TestCreateSandboxRequestWithVolumes:
             )
         assert "credentialProxy.enabled requires networkPolicy" in str(exc_info.value)
 
-    def test_credential_proxy_requires_default_deny_policy(self):
-        with pytest.raises(ValidationError) as exc_info:
-            CreateSandboxRequest.model_validate(
-                {
-                    "image": {"uri": "python:3.11"},
-                    "timeout": 3600,
-                    "resourceLimits": {"cpu": "500m", "memory": "512Mi"},
-                    "entrypoint": ["python", "-c", "print('hello')"],
-                    "networkPolicy": {"defaultAction": "allow", "egress": []},
-                    "credentialProxy": {"enabled": True},
-                }
-            )
-        assert "credentialProxy.enabled requires networkPolicy.defaultAction=deny" in str(
-            exc_info.value
+    def test_credential_proxy_allows_default_allow_policy_for_compatibility(self):
+        request = CreateSandboxRequest.model_validate(
+            {
+                "image": {"uri": "python:3.11"},
+                "timeout": 3600,
+                "resourceLimits": {"cpu": "500m", "memory": "512Mi"},
+                "entrypoint": ["python", "-c", "print('hello')"],
+                "networkPolicy": {"defaultAction": "allow", "egress": []},
+                "credentialProxy": {"enabled": True},
+            }
         )
+        assert request.network_policy.default_action == "allow"
 
     def test_request_with_empty_volumes(self):
         request = CreateSandboxRequest(

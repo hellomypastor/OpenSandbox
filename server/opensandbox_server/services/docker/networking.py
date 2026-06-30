@@ -143,7 +143,9 @@ class DockerNetworkingMixin:
 
         # Common validation: egress.image must be configured
         ensure_egress_configured(request.network_policy, self.app_config.egress)
-        ensure_credential_proxy_configured(request.credential_proxy, self.app_config.egress)
+        ensure_credential_proxy_configured(
+            request.credential_proxy, request.network_policy, self.app_config.egress
+        )
         ensure_egress_runtime_compatible(request.network_policy, self.app_config.secure_runtime)
 
     def _ensure_secure_access_support(self, request) -> None:
