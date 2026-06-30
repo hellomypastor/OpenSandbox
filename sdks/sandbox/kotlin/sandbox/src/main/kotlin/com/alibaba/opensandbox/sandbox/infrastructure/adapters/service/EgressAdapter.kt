@@ -326,7 +326,9 @@ internal class EgressAdapter(
             put("name", JsonPrimitive(name))
             put("match", match.toJsonObject())
             put("auth", auth.toJsonObject())
-            put("redactResponseBody", JsonPrimitive(redactResponseBody))
+            if (redactResponseBody) {
+                put("redactResponseBody", JsonPrimitive(true))
+            }
         }
 
     private fun CredentialMatch.toJsonObject(): JsonObject =

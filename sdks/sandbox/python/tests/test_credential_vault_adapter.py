@@ -16,16 +16,22 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 
 import httpx
 import pytest
 
-from opensandbox.adapters.egress_adapter import EgressAdapter
+from opensandbox.adapters.egress_adapter import EgressAdapter, _dump_bindings
 from opensandbox.config import ConnectionConfig
 from opensandbox.config.connection_sync import ConnectionConfigSync
 from opensandbox.exceptions import SandboxApiException
-from opensandbox.models.sandboxes import SandboxEndpoint
-from opensandbox.sync.adapters.egress_adapter import EgressAdapterSync
+from opensandbox.models.sandboxes import CredentialBinding, SandboxEndpoint
+from opensandbox.sync.adapters.egress_adapter import (
+    EgressAdapterSync,
+)
+from opensandbox.sync.adapters.egress_adapter import (
+    _dump_bindings as _dump_bindings_sync,
+)
 
 
 class _CredentialVaultAsyncTransport(httpx.AsyncBaseTransport):
@@ -68,7 +74,10 @@ class _CredentialVaultAsyncTransport(httpx.AsyncBaseTransport):
                 },
                 request=request,
             )
-        if request.method == "GET" and request.url.path == "/credential-vault/credentials/missing":
+        if (
+            request.method == "GET"
+            and request.url.path == "/credential-vault/credentials/missing"
+        ):
             return httpx.Response(404, text="credential not found", request=request)
         return httpx.Response(204, request=request)
 
@@ -85,9 +94,35 @@ class _CredentialVaultSyncTransport(httpx.BaseTransport):
                 json={"revision": 7, "credentials": [], "bindings": []},
                 request=request,
             )
-        if request.method == "GET" and request.url.path == "/credential-vault/credentials/missing":
+        if (
+            request.method == "GET"
+            and request.url.path == "/credential-vault/credentials/missing"
+        ):
             return httpx.Response(404, text="credential not found", request=request)
         return httpx.Response(204, request=request)
+
+
+@pytest.mark.parametrize("dump_bindings", [_dump_bindings, _dump_bindings_sync])
+def test_binding_redaction_flag_is_only_sent_when_enabled(
+    dump_bindings: Callable[
+        [list[CredentialBinding | dict[str, object]]], list[dict[str, object]]
+    ],
+) -> None:
+    binding = {
+        "name": "gitlab-api",
+        "match": {"hosts": ["code.example.com"]},
+        "auth": {
+            "type": "apiKey",
+            "name": "PRIVATE-TOKEN",
+            "credential": "gitlab-token",
+        },
+    }
+
+    default_payload = dump_bindings([binding])[0]
+    enabled_payload = dump_bindings([{**binding, "redactResponseBody": True}])[0]
+
+    assert "redactResponseBody" not in default_payload
+    assert enabled_payload["redactResponseBody"] is True
 
 
 @pytest.mark.asyncio

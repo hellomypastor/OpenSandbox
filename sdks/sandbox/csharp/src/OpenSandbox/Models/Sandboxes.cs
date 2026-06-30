@@ -290,6 +290,7 @@ public class CredentialBinding
     /// Gets or sets whether reflected credential values are redacted from response bodies.
     /// </summary>
     [JsonPropertyName("redactResponseBody")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool RedactResponseBody { get; set; }
 }
 

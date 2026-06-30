@@ -131,6 +131,7 @@ class EgressAdapterTest {
                             .name("github-api")
                             .match(match)
                             .auth(CredentialAuth.bearer("bearer-token"))
+                            .redactResponseBody(true)
                             .build(),
                         CredentialBinding.builder()
                             .name("basic-api")
@@ -174,6 +175,8 @@ class EgressAdapterTest {
         assertEquals("dummy-bearer-token", firstCredential["source"]!!.jsonObject["value"]!!.jsonPrimitive.content)
 
         val bindings = payload["bindings"]!!.jsonArray
+        assertTrue(bindings[0].jsonObject["redactResponseBody"]!!.jsonPrimitive.content.toBoolean())
+        assertFalse("redactResponseBody" in bindings[1].jsonObject)
         assertEquals("bearer", bindings[0].jsonObject["auth"]!!.jsonObject["type"]!!.jsonPrimitive.content)
         assertEquals("basic", bindings[1].jsonObject["auth"]!!.jsonObject["type"]!!.jsonPrimitive.content)
         val apiKeyAuth = bindings[2].jsonObject["auth"]!!.jsonObject

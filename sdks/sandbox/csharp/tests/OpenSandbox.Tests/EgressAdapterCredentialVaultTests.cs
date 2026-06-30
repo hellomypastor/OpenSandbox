@@ -79,6 +79,7 @@ public class EgressAdapterCredentialVaultTests
         root.GetProperty("bindings")[0].GetProperty("auth").GetProperty("type").GetString().Should().Be("apiKey");
         root.GetProperty("bindings")[0].GetProperty("auth").GetProperty("name").GetString().Should().Be("X-Test-Key");
         root.GetProperty("bindings")[0].GetProperty("match").GetProperty("hosts")[0].GetString().Should().Be("api.example.com");
+        root.GetProperty("bindings")[0].TryGetProperty("redactResponseBody", out _).Should().BeFalse();
         state.Revision.Should().Be(3);
     }
 

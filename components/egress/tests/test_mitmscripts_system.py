@@ -149,6 +149,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
                                 "headers": [
                                     {"name": "Private-Token", "value": "secret-token"}
                                 ],
+                                "redactions": ["secret-token"],
                             }
                         ],
                         "redactions": ["secret-token"],
@@ -186,6 +187,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
         assert vault is not None
         self.assertEqual(7, vault.revision)
         self.assertEqual(["secret-token"], vault.redactions)
+        self.assertEqual(["secret-token"], vault.bindings[0]["redactions"])
         self.assertEqual(("init", "/tmp/active.sock", 0.25), calls[0])
         self.assertEqual(("request", "GET", system.ACTIVE_VAULT_PATH), calls[1])
         self.assertEqual(("close", None, None), calls[-1])
@@ -204,15 +206,17 @@ class SystemAddonRedactionTest(unittest.TestCase):
                         "paths": ["/api/v8/*"],
                     },
                     "headers": [{"name": "Private-Token", "value": "secret-token"}],
+                    "redactions": ["secret-token"],
                     "redactResponseBody": True,
                 }
             ],
-            ["secret-token"],
+            ["unrelated-secret"],
         )
 
         system.request(flow)
 
         self.assertEqual("secret-token", flow.request.headers.get("Private-Token"))
+        self.assertEqual(["secret-token"], flow.metadata[system.FLOW_REDACTIONS_KEY])
         self.assertTrue(flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY])
         self.assertNotIn("secret-token", "\n".join(system.ctx.log.messages))
 
@@ -226,6 +230,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
                     "name": "gitlab-api",
                     "match": {"hosts": ["code.example.com"]},
                     "headers": [{"name": "Private-Token", "value": "secret-token"}],
+                    "redactions": ["secret-token"],
                 }
             ],
             ["secret-token"],
@@ -240,18 +245,14 @@ class SystemAddonRedactionTest(unittest.TestCase):
         self.assertEqual(b"upstream body includes secret-token", flow.response.body)
         self.assertFalse(flow.response.set_content_called)
 
-    def test_response_redacts_headers_and_body(self) -> None:
+    def test_buffered_response_redacts_body(self) -> None:
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
         flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
-        flow.response.headers["content-encoding"] = "gzip"
-        flow.response.headers["content-length"] = "42"
 
-        system.responseheaders(flow)
         system.response(flow)
 
-        self.assertEqual("[REDACTED]", flow.response.headers.get("x-token-echo"))
         self.assertEqual(b"upstream body includes [REDACTED]", flow.response.body)
         self.assertTrue(flow.response.set_content_called)
         self.assertFalse(flow.response.set_text_called)
@@ -309,15 +310,13 @@ class SystemAddonRedactionTest(unittest.TestCase):
 
         self.assertTrue(flow.killed)
 
-    def test_compressed_response_over_streaming_threshold_is_terminated(self) -> None:
+    def test_compressed_known_length_response_is_terminated(self) -> None:
         system = _load_system_module()
         flow = _Flow()
         flow.metadata[system.FLOW_REDACTIONS_KEY] = ["secret-token"]
         flow.metadata[system.FLOW_REDACT_RESPONSE_BODY_KEY] = True
         flow.response.headers["content-encoding"] = "gzip"
-        flow.response.headers["content-length"] = str(
-            system.MAX_BUFFERED_REDACTION_BODY_BYTES + 1
-        )
+        flow.response.headers["content-length"] = "42"
 
         system.responseheaders(flow)
 
@@ -395,6 +394,7 @@ class SystemAddonRedactionTest(unittest.TestCase):
                     "name": "gitlab-api",
                     "match": {"hosts": ["code.example.com"]},
                     "headers": [{"name": "Private-Token", "value": "old-secret"}],
+                    "redactions": ["old-secret"],
                 }
             ],
             ["old-secret"],

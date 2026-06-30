@@ -75,6 +75,7 @@ func TestCredentialVaultCreateSanitizesAndRendersActiveSnapshot(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), payload.Revision)
 	require.Equal(t, []InjectionHeader{{Name: "Private-Token", Value: "secret-token"}}, payload.Bindings[0].Headers)
+	require.Equal(t, []string{"secret-token"}, payload.Bindings[0].Redactions)
 	require.True(t, payload.Bindings[0].RedactResponseBody)
 	require.Contains(t, payload.Redactions, "secret-token")
 }

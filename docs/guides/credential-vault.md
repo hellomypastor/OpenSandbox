@@ -297,10 +297,9 @@ CredentialBinding(
 Response-body redaction is disabled when the binding option is omitted. Enable
 it only for endpoints where credential reflection is a realistic risk. Body
 inspection can change response framing and adds processing to downloads and
-streaming responses. When enabled, compressed streaming, unknown-length
-compressed, and compressed responses larger than the 1 MiB buffering threshold
-fail closed because they cannot be inspected safely. Response header redaction
-remains enabled for every credential-bound request.
+streaming responses. When enabled, compressed responses fail closed because the
+sidecar cannot safely bound their decompressed size before inspection. Response
+header redaction remains enabled for every credential-bound request.
 
 The sandbox command stays secret-free:
 

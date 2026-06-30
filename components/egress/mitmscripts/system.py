@@ -54,8 +54,6 @@ CREDENTIAL_PROXY_SOCKET_ENV = "OPENSANDBOX_CREDENTIAL_PROXY_SOCKET"
 DEFAULT_CREDENTIAL_PROXY_SOCKET = "/run/opensandbox/credential-proxy/active.sock"
 ACTIVE_VAULT_PATH = "/credential-vault/_active"
 VAULT_CACHE_TTL_SECONDS = 0.5
-# Keep aligned with stream_large_bodies in mitmproxy/config.yaml.
-MAX_BUFFERED_REDACTION_BODY_BYTES = 1024 * 1024
 FLOW_REDACTIONS_KEY = "opensandbox_credential_redactions"
 FLOW_REDACT_RESPONSE_BODY_KEY = "opensandbox_credential_redact_response_body"
 REDACTED_BYTES = b"[REDACTED]"
@@ -264,7 +262,11 @@ def request(flow: http.HTTPFlow) -> None:
         injected_names.append(name)
 
     if injected_names:
-        flow.metadata[FLOW_REDACTIONS_KEY] = list(vault.redactions)
+        flow.metadata[FLOW_REDACTIONS_KEY] = [
+            value
+            for value in (binding.get("redactions") or [])
+            if isinstance(value, str) and value
+        ]
         flow.metadata[FLOW_REDACT_RESPONSE_BODY_KEY] = bool(
             binding.get("redactResponseBody", False)
         )
@@ -300,18 +302,11 @@ def responseheaders(flow: http.HTTPFlow) -> None:
     compressed = bool(content_encoding and content_encoding != "identity")
     has_content_length = "content-length" in flow.response.headers
     if compressed:
-        content_length = _content_length(flow.response)
-        if (
-            requires_streaming
-            or content_length is None
-            or content_length > MAX_BUFFERED_REDACTION_BODY_BYTES
-        ):
-            ctx.log.warn(
-                "credential proxy: terminating uninspectable compressed streaming response"
-            )
-            flow.kill()
-        # Known, non-streaming compressed bodies are decoded by get_content() and
-        # safely rewritten by response().
+        ctx.log.warn(
+            "credential proxy: terminating compressed response because body "
+            "redaction cannot safely bound decompressed size"
+        )
+        flow.kill()
         return
 
     # Install the transformer before mitmproxy can switch an unknown-length body
@@ -331,14 +326,6 @@ def _response_has_no_body(flow: http.HTTPFlow) -> bool:
 
 def _response_body_redaction_enabled(flow: http.HTTPFlow) -> bool:
     return bool(flow.metadata.get(FLOW_REDACT_RESPONSE_BODY_KEY, False))
-
-
-def _content_length(response: http.Response) -> int | None:
-    try:
-        value = int(response.headers.get("content-length", ""))
-    except ValueError:
-        return None
-    return value if value >= 0 else None
 
 
 def _redact_response_headers(flow: http.HTTPFlow) -> None:

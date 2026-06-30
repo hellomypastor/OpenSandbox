@@ -185,6 +185,7 @@ type ActiveBinding struct {
 	Name               string            `json:"name"`
 	Match              Match             `json:"match"`
 	Headers            []InjectionHeader `json:"headers"`
+	Redactions         []string          `json:"redactions,omitempty"`
 	RedactResponseBody bool              `json:"redactResponseBody,omitempty"`
 }
 
@@ -344,17 +345,25 @@ func (v *Store) ActiveSnapshot() (ActiveSnapshot, error) {
 		if err != nil {
 			return ActiveSnapshot{}, err
 		}
+		bindingRedactions := make(map[string]struct{}, len(values))
+		for _, value := range values {
+			if value != "" {
+				bindingRedactions[value] = struct{}{}
+				redactions[value] = struct{}{}
+			}
+		}
+		selectedRedactions := make([]string, 0, len(bindingRedactions))
+		for value := range bindingRedactions {
+			selectedRedactions = append(selectedRedactions, value)
+		}
+		sort.Strings(selectedRedactions)
 		snapshot.Bindings = append(snapshot.Bindings, ActiveBinding{
 			Name:               b.Name,
 			Match:              b.Match,
 			Headers:            headers,
+			Redactions:         selectedRedactions,
 			RedactResponseBody: b.RedactResponseBody,
 		})
-		for _, value := range values {
-			if value != "" {
-				redactions[value] = struct{}{}
-			}
-		}
 	}
 	for value := range redactions {
 		snapshot.Redactions = append(snapshot.Redactions, value)

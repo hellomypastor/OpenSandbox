@@ -563,7 +563,7 @@ class CredentialAuthMetadata(
 /**
  * Sanitized binding metadata returned by Credential Vault.
  */
-class CredentialBindingMetadata(
+class CredentialBindingMetadata @JvmOverloads constructor(
     val name: String,
     val revision: Int,
     val match: CredentialMatch?,

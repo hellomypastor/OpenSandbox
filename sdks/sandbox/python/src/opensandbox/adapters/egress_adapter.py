@@ -59,12 +59,14 @@ def _dump_credentials(
 def _dump_bindings(
     items: list[CredentialBinding | dict[str, object]],
 ) -> list[dict[str, object]]:
-    return [
-        CredentialBinding.model_validate(item).model_dump(
-            by_alias=True, exclude_none=True
-        )
-        for item in items
-    ]
+    serialized: list[dict[str, object]] = []
+    for item in items:
+        binding = CredentialBinding.model_validate(item)
+        payload = binding.model_dump(by_alias=True, exclude_none=True)
+        if not binding.redact_response_body:
+            payload.pop("redactResponseBody", None)
+        serialized.append(payload)
+    return serialized
 
 
 def _dump_credential_mutations(
